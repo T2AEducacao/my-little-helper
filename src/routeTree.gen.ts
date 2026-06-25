@@ -11,6 +11,15 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as AppReunioesRouteImport } from './routes/_app.reunioes'
+import { Route as AppMetasRouteImport } from './routes/_app.metas'
+import { Route as AppInsightsRouteImport } from './routes/_app.insights'
+import { Route as AppFeedbacksRouteImport } from './routes/_app.feedbacks'
+import { Route as AppDesenvolvimentoRouteImport } from './routes/_app.desenvolvimento'
+import { Route as AppConfiguracoesRouteImport } from './routes/_app.configuracoes'
+import { Route as AppColaboradoresRouteImport } from './routes/_app.colaboradores'
+import { Route as AppAvaliacoesRouteImport } from './routes/_app.avaliacoes'
+import { Route as AppAlertasRouteImport } from './routes/_app.alertas'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -21,24 +30,128 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppReunioesRoute = AppReunioesRouteImport.update({
+  id: '/reunioes',
+  path: '/reunioes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMetasRoute = AppMetasRouteImport.update({
+  id: '/metas',
+  path: '/metas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInsightsRoute = AppInsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFeedbacksRoute = AppFeedbacksRouteImport.update({
+  id: '/feedbacks',
+  path: '/feedbacks',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDesenvolvimentoRoute = AppDesenvolvimentoRouteImport.update({
+  id: '/desenvolvimento',
+  path: '/desenvolvimento',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppColaboradoresRoute = AppColaboradoresRouteImport.update({
+  id: '/colaboradores',
+  path: '/colaboradores',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAvaliacoesRoute = AppAvaliacoesRouteImport.update({
+  id: '/avaliacoes',
+  path: '/avaliacoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAlertasRoute = AppAlertasRouteImport.update({
+  id: '/alertas',
+  path: '/alertas',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/alertas': typeof AppAlertasRoute
+  '/avaliacoes': typeof AppAvaliacoesRoute
+  '/colaboradores': typeof AppColaboradoresRoute
+  '/configuracoes': typeof AppConfiguracoesRoute
+  '/desenvolvimento': typeof AppDesenvolvimentoRoute
+  '/feedbacks': typeof AppFeedbacksRoute
+  '/insights': typeof AppInsightsRoute
+  '/metas': typeof AppMetasRoute
+  '/reunioes': typeof AppReunioesRoute
 }
 export interface FileRoutesByTo {
+  '/alertas': typeof AppAlertasRoute
+  '/avaliacoes': typeof AppAvaliacoesRoute
+  '/colaboradores': typeof AppColaboradoresRoute
+  '/configuracoes': typeof AppConfiguracoesRoute
+  '/desenvolvimento': typeof AppDesenvolvimentoRoute
+  '/feedbacks': typeof AppFeedbacksRoute
+  '/insights': typeof AppInsightsRoute
+  '/metas': typeof AppMetasRoute
+  '/reunioes': typeof AppReunioesRoute
   '/': typeof AppIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/_app/alertas': typeof AppAlertasRoute
+  '/_app/avaliacoes': typeof AppAvaliacoesRoute
+  '/_app/colaboradores': typeof AppColaboradoresRoute
+  '/_app/configuracoes': typeof AppConfiguracoesRoute
+  '/_app/desenvolvimento': typeof AppDesenvolvimentoRoute
+  '/_app/feedbacks': typeof AppFeedbacksRoute
+  '/_app/insights': typeof AppInsightsRoute
+  '/_app/metas': typeof AppMetasRoute
+  '/_app/reunioes': typeof AppReunioesRoute
   '/_app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/alertas'
+    | '/avaliacoes'
+    | '/colaboradores'
+    | '/configuracoes'
+    | '/desenvolvimento'
+    | '/feedbacks'
+    | '/insights'
+    | '/metas'
+    | '/reunioes'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/_app' | '/_app/'
+  to:
+    | '/alertas'
+    | '/avaliacoes'
+    | '/colaboradores'
+    | '/configuracoes'
+    | '/desenvolvimento'
+    | '/feedbacks'
+    | '/insights'
+    | '/metas'
+    | '/reunioes'
+    | '/'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/_app/alertas'
+    | '/_app/avaliacoes'
+    | '/_app/colaboradores'
+    | '/_app/configuracoes'
+    | '/_app/desenvolvimento'
+    | '/_app/feedbacks'
+    | '/_app/insights'
+    | '/_app/metas'
+    | '/_app/reunioes'
+    | '/_app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -61,14 +174,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/reunioes': {
+      id: '/_app/reunioes'
+      path: '/reunioes'
+      fullPath: '/reunioes'
+      preLoaderRoute: typeof AppReunioesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/metas': {
+      id: '/_app/metas'
+      path: '/metas'
+      fullPath: '/metas'
+      preLoaderRoute: typeof AppMetasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/insights': {
+      id: '/_app/insights'
+      path: '/insights'
+      fullPath: '/insights'
+      preLoaderRoute: typeof AppInsightsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/feedbacks': {
+      id: '/_app/feedbacks'
+      path: '/feedbacks'
+      fullPath: '/feedbacks'
+      preLoaderRoute: typeof AppFeedbacksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/desenvolvimento': {
+      id: '/_app/desenvolvimento'
+      path: '/desenvolvimento'
+      fullPath: '/desenvolvimento'
+      preLoaderRoute: typeof AppDesenvolvimentoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/configuracoes': {
+      id: '/_app/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AppConfiguracoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/colaboradores': {
+      id: '/_app/colaboradores'
+      path: '/colaboradores'
+      fullPath: '/colaboradores'
+      preLoaderRoute: typeof AppColaboradoresRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/avaliacoes': {
+      id: '/_app/avaliacoes'
+      path: '/avaliacoes'
+      fullPath: '/avaliacoes'
+      preLoaderRoute: typeof AppAvaliacoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/alertas': {
+      id: '/_app/alertas'
+      path: '/alertas'
+      fullPath: '/alertas'
+      preLoaderRoute: typeof AppAlertasRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAlertasRoute: typeof AppAlertasRoute
+  AppAvaliacoesRoute: typeof AppAvaliacoesRoute
+  AppColaboradoresRoute: typeof AppColaboradoresRoute
+  AppConfiguracoesRoute: typeof AppConfiguracoesRoute
+  AppDesenvolvimentoRoute: typeof AppDesenvolvimentoRoute
+  AppFeedbacksRoute: typeof AppFeedbacksRoute
+  AppInsightsRoute: typeof AppInsightsRoute
+  AppMetasRoute: typeof AppMetasRoute
+  AppReunioesRoute: typeof AppReunioesRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAlertasRoute: AppAlertasRoute,
+  AppAvaliacoesRoute: AppAvaliacoesRoute,
+  AppColaboradoresRoute: AppColaboradoresRoute,
+  AppConfiguracoesRoute: AppConfiguracoesRoute,
+  AppDesenvolvimentoRoute: AppDesenvolvimentoRoute,
+  AppFeedbacksRoute: AppFeedbacksRoute,
+  AppInsightsRoute: AppInsightsRoute,
+  AppMetasRoute: AppMetasRoute,
+  AppReunioesRoute: AppReunioesRoute,
   AppIndexRoute: AppIndexRoute,
 }
 
