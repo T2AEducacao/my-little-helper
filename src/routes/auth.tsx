@@ -39,8 +39,11 @@ function cleanAuthMessage(message: string) {
   if (lower.includes("already registered") || lower.includes("user already exists")) {
     return "Este e-mail já possui cadastro. Entre com sua senha ou use outro e-mail.";
   }
-  if (lower.includes("database error saving new user")) {
-    return "Não foi possível finalizar o cadastro no Lovable Cloud. Revise a configuração de perfil do usuário no backend.";
+  if (
+    lower.includes("database error saving new user") ||
+    lower.includes("ensure_current_user_profile")
+  ) {
+    return "Não foi possível finalizar seu perfil no Lovable Cloud. Aguarde a atualização do backend e tente novamente.";
   }
 
   return trimmed;
@@ -98,11 +101,21 @@ function AuthPage() {
     const authError = readAuthErrorFromUrl();
     const errorTimer = authError ? window.setTimeout(() => toast.error(authError), 0) : undefined;
 
-    lovableCloudAuth.getSession().then((session) => {
-      if (!cancelled && session) navigate({ to: "/", replace: true });
-    });
+    lovableCloudAuth
+      .getVerifiedSession({ ensureProfile: true })
+      .then((auth) => {
+        if (!cancelled && auth) navigate({ to: "/", replace: true });
+      })
+      .catch((err) => console.error("Lovable Cloud session check error", err));
+
     const unsubscribe = lovableCloudAuth.onAuthStateChange((_event, session) => {
-      if (!cancelled && session) navigate({ to: "/", replace: true });
+      if (!session) return;
+      lovableCloudAuth
+        .getVerifiedSession({ ensureProfile: true })
+        .then((auth) => {
+          if (!cancelled && auth) navigate({ to: "/", replace: true });
+        })
+        .catch((err) => console.error("Lovable Cloud auth state error", err));
     });
 
     return () => {
@@ -118,7 +131,8 @@ function AuthPage() {
     try {
       if (mode === "signin") {
         const parsed = signInSchema.parse({ email: form.email, password: form.password });
-        await lovableCloudAuth.signInWithPassword(parsed);
+        const auth = await lovableCloudAuth.signInWithPassword(parsed);
+        if (!auth) throw new Error("Não foi possível validar sua sessão.");
         toast.success("Bem-vindo de volta!");
         navigate({ to: "/", replace: true });
       } else {
@@ -147,18 +161,6 @@ function AuthPage() {
     }
   };
 
-  const google = async () => {
-    setLoading(true);
-    try {
-      const result = await lovableCloudAuth.signInWithGoogle(window.location.origin);
-      if (!result.redirected) navigate({ to: "/", replace: true });
-    } catch (err) {
-      console.error("Lovable Cloud Google auth error", err);
-      toast.error(getAuthErrorMessage(err));
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-12">
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)]">
@@ -167,22 +169,6 @@ function AuthPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "signin" ? "Acesse sua conta" : "Crie sua conta e comece em minutos"}
           </p>
-        </div>
-
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={google}
-          disabled={loading}
-        >
-          Continuar com Google
-        </Button>
-
-        <div className="my-4 flex items-center gap-2 text-xs text-muted-foreground">
-          <div className="h-px flex-1 bg-border" />
-          ou
-          <div className="h-px flex-1 bg-border" />
         </div>
 
         <form onSubmit={submit} className="flex flex-col gap-3">

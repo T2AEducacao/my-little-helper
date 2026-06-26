@@ -14,11 +14,48 @@ type SignUpCredentials = PasswordCredentials & {
   emailRedirectTo: string;
 };
 
+type EnsureProfileOptions = {
+  fullName?: string | null;
+  companyName?: string | null;
+};
+
+type LovableCloudRpcClient = {
+  rpc: (
+    functionName: "ensure_current_user_profile",
+    args: { _company_name: string | null; _profile_name: string | null },
+  ) => Promise<{ error: Error | null }>;
+};
+
 export const lovableCloudAuth = {
   async getSession() {
     const { data, error } = await lovableCloudClient.auth.getSession();
     if (error) throw error;
     return data.session;
+  },
+
+  async getUser() {
+    const { data, error } = await lovableCloudClient.auth.getUser();
+
+    if (error) {
+      if (error.message.toLowerCase().includes("auth session missing")) return null;
+      throw error;
+    }
+
+    return data.user ?? null;
+  },
+
+  async getVerifiedSession(options?: { ensureProfile?: boolean }) {
+    const session = await this.getSession();
+    if (!session) return null;
+
+    const user = await this.getUser();
+    if (!user) return null;
+
+    if (options?.ensureProfile) {
+      await this.ensureCurrentUserProfile();
+    }
+
+    return { session, user };
   },
 
   async getAccessToken() {
@@ -37,6 +74,8 @@ export const lovableCloudAuth = {
   async signInWithPassword(credentials: PasswordCredentials) {
     const { error } = await lovableCloudClient.auth.signInWithPassword(credentials);
     if (error) throw error;
+
+    return this.getVerifiedSession({ ensureProfile: true });
   },
 
   async signUpWithPassword(credentials: SignUpCredentials) {
@@ -53,7 +92,16 @@ export const lovableCloudAuth = {
     });
 
     if (error) throw error;
-    return { session: data.session };
+
+    if (!data.session) return { session: null, user: null };
+
+    await this.ensureCurrentUserProfile({
+      fullName: credentials.fullName,
+      companyName: credentials.companyName,
+    });
+
+    const verified = await this.getVerifiedSession();
+    return verified ?? { session: null, user: null };
   },
 
   async signInWithGoogle(redirectUri: string) {
@@ -62,7 +110,18 @@ export const lovableCloudAuth = {
     });
 
     if (result.error) throw result.error;
+    if (!result.redirected) await this.ensureCurrentUserProfile();
     return { redirected: Boolean(result.redirected) };
+  },
+
+  async ensureCurrentUserProfile(options?: EnsureProfileOptions) {
+    const client = lovableCloudClient as unknown as LovableCloudRpcClient;
+    const { error } = await client.rpc("ensure_current_user_profile", {
+      _company_name: options?.companyName ?? null,
+      _profile_name: options?.fullName ?? null,
+    });
+
+    if (error) throw error;
   },
 
   async signOut() {

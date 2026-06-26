@@ -17,8 +17,11 @@ export function AppHeader({ title }: Props) {
   const signOut = async () => {
     await queryClient.cancelQueries();
     queryClient.clear();
-    await lovableCloudAuth.signOut();
-    navigate({ to: "/auth", replace: true });
+    try {
+      await lovableCloudAuth.signOut();
+    } finally {
+      navigate({ to: "/auth", replace: true });
+    }
   };
 
   return (

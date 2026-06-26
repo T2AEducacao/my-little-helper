@@ -31,20 +31,41 @@ function AppLayout() {
 
   useEffect(() => {
     let mounted = true;
-    lovableCloudAuth.getSession().then((session) => {
-      if (!mounted) return;
-      if (!session) navigate({ to: "/auth", replace: true });
-      else setChecked(true);
-    });
+    const redirectToAuth = () => {
+      setChecked(false);
+      navigate({ to: "/auth", replace: true });
+    };
+
+    lovableCloudAuth
+      .getVerifiedSession({ ensureProfile: true })
+      .then((auth) => {
+        if (!mounted) return;
+        if (!auth) redirectToAuth();
+        else setChecked(true);
+      })
+      .catch((err) => {
+        console.error("Lovable Cloud protected route auth error", err);
+        if (mounted) redirectToAuth();
+      });
+
     const unsubscribe = lovableCloudAuth.onAuthStateChange((event, session) => {
       if (!mounted) return;
       if (session) {
-        setChecked(true);
+        lovableCloudAuth
+          .getVerifiedSession({ ensureProfile: true })
+          .then((auth) => {
+            if (!mounted) return;
+            if (auth) setChecked(true);
+            else redirectToAuth();
+          })
+          .catch((err) => {
+            console.error("Lovable Cloud auth state error", err);
+            if (mounted) redirectToAuth();
+          });
         return;
       }
       if (event === "SIGNED_OUT") {
-        setChecked(false);
-        navigate({ to: "/auth", replace: true });
+        redirectToAuth();
       }
     });
     return () => {
