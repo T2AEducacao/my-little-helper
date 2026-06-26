@@ -46,12 +46,16 @@ function AuthPage() {
     const errorTimer = authError ? window.setTimeout(() => toast.error(authError), 0) : undefined;
 
     supabase.auth.getSession().then(({ data }) => {
-      if (!cancelled && data.session) navigate({ to: "/" });
+      if (!cancelled && data.session) navigate({ to: "/", replace: true });
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!cancelled && session) navigate({ to: "/", replace: true });
     });
 
     return () => {
       cancelled = true;
       if (errorTimer) window.clearTimeout(errorTimer);
+      sub.subscription.unsubscribe();
     };
   }, [navigate]);
 
@@ -81,28 +85,9 @@ function AuthPage() {
           navigate({ to: "/", replace: true });
           return;
         }
-
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: parsed.email,
-          password: parsed.password,
-        });
-        if (signInError) {
-          const requiresEmailConfirmation =
-            signInError.message.toLowerCase().includes("confirm") ||
-            signInError.message.toLowerCase().includes("not confirmed");
-
-          throw new Error(
-            requiresEmailConfirmation
-              ? "O Auth ainda exige confirmação de e-mail. Desative essa opção no Lovable Cloud/Supabase para cadastro imediato."
-              : signInError.message,
-          );
-        }
-        if (!signInData.session) {
-          throw new Error("Conta criada, mas não foi possível iniciar a sessão automaticamente.");
-        }
-
-        toast.success("Conta criada! Entrando...");
-        navigate({ to: "/", replace: true });
+        toast.success("Conta criada! Confirme seu e-mail para entrar no sistema.");
+        setMode("signin");
+        setForm({ email: parsed.email, password: "", full_name: "", company_name: "" });
       }
     } catch (err) {
       const msg = err instanceof z.ZodError ? err.issues[0].message : err instanceof Error ? err.message : "Erro";

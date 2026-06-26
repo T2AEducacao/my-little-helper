@@ -36,8 +36,16 @@ function AppLayout() {
       if (!data.session) navigate({ to: "/auth", replace: true });
       else setChecked(true);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") navigate({ to: "/auth", replace: true });
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      if (session) {
+        setChecked(true);
+        return;
+      }
+      if (event === "SIGNED_OUT") {
+        setChecked(false);
+        navigate({ to: "/auth", replace: true });
+      }
     });
     return () => {
       mounted = false;
