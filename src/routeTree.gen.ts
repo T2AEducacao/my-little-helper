@@ -20,6 +20,7 @@ import { Route as AppConfiguracoesRouteImport } from './routes/_app.configuracoe
 import { Route as AppColaboradoresRouteImport } from './routes/_app.colaboradores'
 import { Route as AppAvaliacoesRouteImport } from './routes/_app.avaliacoes'
 import { Route as AppAlertasRouteImport } from './routes/_app.alertas'
+import { Route as AppColaboradoresIdRouteImport } from './routes/_app.colaboradores.$id'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -75,23 +76,29 @@ const AppAlertasRoute = AppAlertasRouteImport.update({
   path: '/alertas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppColaboradoresIdRoute = AppColaboradoresIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppColaboradoresRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/alertas': typeof AppAlertasRoute
   '/avaliacoes': typeof AppAvaliacoesRoute
-  '/colaboradores': typeof AppColaboradoresRoute
+  '/colaboradores': typeof AppColaboradoresRouteWithChildren
   '/configuracoes': typeof AppConfiguracoesRoute
   '/desenvolvimento': typeof AppDesenvolvimentoRoute
   '/feedbacks': typeof AppFeedbacksRoute
   '/insights': typeof AppInsightsRoute
   '/metas': typeof AppMetasRoute
   '/reunioes': typeof AppReunioesRoute
+  '/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
 export interface FileRoutesByTo {
   '/alertas': typeof AppAlertasRoute
   '/avaliacoes': typeof AppAvaliacoesRoute
-  '/colaboradores': typeof AppColaboradoresRoute
+  '/colaboradores': typeof AppColaboradoresRouteWithChildren
   '/configuracoes': typeof AppConfiguracoesRoute
   '/desenvolvimento': typeof AppDesenvolvimentoRoute
   '/feedbacks': typeof AppFeedbacksRoute
@@ -99,13 +106,14 @@ export interface FileRoutesByTo {
   '/metas': typeof AppMetasRoute
   '/reunioes': typeof AppReunioesRoute
   '/': typeof AppIndexRoute
+  '/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_app/alertas': typeof AppAlertasRoute
   '/_app/avaliacoes': typeof AppAvaliacoesRoute
-  '/_app/colaboradores': typeof AppColaboradoresRoute
+  '/_app/colaboradores': typeof AppColaboradoresRouteWithChildren
   '/_app/configuracoes': typeof AppConfiguracoesRoute
   '/_app/desenvolvimento': typeof AppDesenvolvimentoRoute
   '/_app/feedbacks': typeof AppFeedbacksRoute
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/_app/metas': typeof AppMetasRoute
   '/_app/reunioes': typeof AppReunioesRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/insights'
     | '/metas'
     | '/reunioes'
+    | '/colaboradores/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/alertas'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/metas'
     | '/reunioes'
     | '/'
+    | '/colaboradores/$id'
   id:
     | '__root__'
     | '/_app'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/_app/metas'
     | '/_app/reunioes'
     | '/_app/'
+    | '/_app/colaboradores/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -237,13 +249,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAlertasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/colaboradores/$id': {
+      id: '/_app/colaboradores/$id'
+      path: '/$id'
+      fullPath: '/colaboradores/$id'
+      preLoaderRoute: typeof AppColaboradoresIdRouteImport
+      parentRoute: typeof AppColaboradoresRoute
+    }
   }
 }
+
+interface AppColaboradoresRouteChildren {
+  AppColaboradoresIdRoute: typeof AppColaboradoresIdRoute
+}
+
+const AppColaboradoresRouteChildren: AppColaboradoresRouteChildren = {
+  AppColaboradoresIdRoute: AppColaboradoresIdRoute,
+}
+
+const AppColaboradoresRouteWithChildren =
+  AppColaboradoresRoute._addFileChildren(AppColaboradoresRouteChildren)
 
 interface AppRouteChildren {
   AppAlertasRoute: typeof AppAlertasRoute
   AppAvaliacoesRoute: typeof AppAvaliacoesRoute
-  AppColaboradoresRoute: typeof AppColaboradoresRoute
+  AppColaboradoresRoute: typeof AppColaboradoresRouteWithChildren
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
   AppDesenvolvimentoRoute: typeof AppDesenvolvimentoRoute
   AppFeedbacksRoute: typeof AppFeedbacksRoute
@@ -256,7 +286,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAlertasRoute: AppAlertasRoute,
   AppAvaliacoesRoute: AppAvaliacoesRoute,
-  AppColaboradoresRoute: AppColaboradoresRoute,
+  AppColaboradoresRoute: AppColaboradoresRouteWithChildren,
   AppConfiguracoesRoute: AppConfiguracoesRoute,
   AppDesenvolvimentoRoute: AppDesenvolvimentoRoute,
   AppFeedbacksRoute: AppFeedbacksRoute,
@@ -274,13 +304,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
