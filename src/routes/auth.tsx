@@ -22,6 +22,18 @@ const signUpSchema = signInSchema.extend({
   company_name: z.string().trim().min(2, "Informe a empresa").max(120),
 });
 
+function readAuthErrorFromUrl() {
+  const search = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const message =
+    search.get("error_description") ||
+    hash.get("error_description") ||
+    search.get("error") ||
+    hash.get("error");
+
+  return message ? message.replace(/\+/g, " ") : null;
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -29,9 +41,18 @@ function AuthPage() {
   const [form, setForm] = useState({ email: "", password: "", full_name: "", company_name: "" });
 
   useEffect(() => {
+    let cancelled = false;
+    const authError = readAuthErrorFromUrl();
+    const errorTimer = authError ? window.setTimeout(() => toast.error(authError), 0) : undefined;
+
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/" });
+      if (!cancelled && data.session) navigate({ to: "/" });
     });
+
+    return () => {
+      cancelled = true;
+      if (errorTimer) window.clearTimeout(errorTimer);
+    };
   }, [navigate]);
 
   const submit = async (e: React.FormEvent) => {
@@ -46,7 +67,7 @@ function AuthPage() {
         navigate({ to: "/" });
       } else {
         const parsed = signUpSchema.parse(form);
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email: parsed.email,
           password: parsed.password,
           options: {
@@ -55,8 +76,12 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        toast.success("Conta criada! Entrando…");
-        navigate({ to: "/" });
+        if (data.session) {
+          toast.success("Conta criada! Entrando...");
+          navigate({ to: "/" });
+        } else {
+          toast.success("Conta criada! Verifique seu e-mail para confirmar o acesso.");
+        }
       }
     } catch (err) {
       const msg = err instanceof z.ZodError ? err.issues[0].message : err instanceof Error ? err.message : "Erro";
