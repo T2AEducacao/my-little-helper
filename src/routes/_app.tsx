@@ -2,7 +2,9 @@ import { AppHeader } from "@/components/php/AppHeader";
 import { AppSidebar } from "@/components/php/AppSidebar";
 import { MobileBottomNav } from "@/components/php/MobileBottomNav";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { Outlet, createFileRoute, useRouterState } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
+import { Outlet, createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 
 const PAGE_TITLES: Record<string, string> = {
   "/": "Dashboard",
@@ -18,11 +20,39 @@ const PAGE_TITLES: Record<string, string> = {
 };
 
 export const Route = createFileRoute("/_app")({
+  ssr: false,
   component: AppLayout,
 });
 
 function AppLayout() {
+  const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      if (!data.session) navigate({ to: "/auth", replace: true });
+      else setChecked(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") navigate({ to: "/auth", replace: true });
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  if (!checked) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
+        Carregando…
+      </div>
+    );
+  }
+
   const title = PAGE_TITLES[pathname] ?? "People Performance Hub";
 
   return (
@@ -40,3 +70,4 @@ function AppLayout() {
     </SidebarProvider>
   );
 }
+
