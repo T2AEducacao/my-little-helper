@@ -1,13 +1,26 @@
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Bell, Search } from "lucide-react";
+import { Bell, LogOut, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Props {
   title: string;
 }
 
 export function AppHeader({ title }: Props) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const signOut = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  };
+
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur md:px-6">
       <SidebarTrigger className="-ml-1" />
@@ -24,7 +37,11 @@ export function AppHeader({ title }: Props) {
         <Button variant="ghost" size="icon" aria-label="Notificações" className="h-9 w-9">
           <Bell className="h-4 w-4" />
         </Button>
+        <Button variant="ghost" size="icon" aria-label="Sair" className="h-9 w-9" onClick={signOut}>
+          <LogOut className="h-4 w-4" />
+        </Button>
       </div>
     </header>
   );
 }
+
