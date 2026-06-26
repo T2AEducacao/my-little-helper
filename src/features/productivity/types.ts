@@ -40,10 +40,38 @@ export type UsageIntervalWithSource = UsageInterval & {
   device: Pick<MonitoredDevice, "id" | "name" | "platform">;
 };
 
+export type ProductivityDashboardRange = "7" | "30" | "90";
+
 export type ProductivitySummary = {
   totalSeconds: number;
   appSeconds: number;
   websiteSeconds: number;
   deviceCount: number;
   sourceCount: number;
+};
+
+export type SourceUsageSummary = {
+  sourceId: string;
+  name: string;
+  identifier: string;
+  sourceType: UsageSourceType;
+  totalSeconds: number;
+  intervalCount: number;
+  percentage: number;
+};
+
+export type DeviceUsageSummary = {
+  deviceId: string;
+  name: string;
+  platform: string | null;
+  totalSeconds: number;
+  intervalCount: number;
+  percentage: number;
+};
+
+export type DailyUsagePoint = {
+  date: string;
+  totalSeconds: number;
+  appSeconds: number;
+  websiteSeconds: number;
 };

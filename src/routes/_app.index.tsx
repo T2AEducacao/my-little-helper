@@ -1,65 +1,58 @@
-import { Button } from "@/components/ui/button";
-import { AlertCard } from "@/components/php/AlertCard";
-import { EmployeeMiniCard } from "@/components/php/EmployeeMiniCard";
 import { EmptyState } from "@/components/php/EmptyState";
 import { FilterBar } from "@/components/php/FilterBar";
 import { MetricCard } from "@/components/php/MetricCard";
 import { PageHeader } from "@/components/php/PageHeader";
-import { ProgressBar } from "@/components/php/ProgressBar";
-import { ScoreCard } from "@/components/php/ScoreCard";
 import { SectionCard } from "@/components/php/SectionCard";
-import { SCORE_RANGES, scoreLabel, scoreToStatus, type ScoreStatus } from "@/components/php/types";
 import {
-  buildDistribution,
-  buildEvolutionSeries,
-  latestSnapshotsByEmployee,
-  useAlerts,
-  useDepartments,
-  useEmployees,
-  useSnapshots,
-} from "@/lib/php-data";
+  USAGE_SOURCE_LABEL,
+  formatDuration,
+  useProductivityOverview,
+} from "@/features/productivity";
+import type {
+  DeviceUsageSummary,
+  ProductivityDashboardRange,
+  SourceUsageSummary,
+} from "@/features/productivity";
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  AlertOctagon,
-  AlertTriangle,
-  CheckCircle2,
-  ClipboardCheck,
-  LineChart as LineChartIcon,
-  MessageSquare,
-  Sparkles,
-  TrendingUp,
-  UserPlus,
-  Users,
+  Activity,
+  AppWindow,
+  BarChart3,
+  Clock3,
+  Database,
+  Globe2,
+  HardDrive,
+  Laptop,
+  MonitorDot,
+  MousePointerClick,
+  Radar,
+  ShieldCheck,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 
-const SEVERITY_ORDER = { critical: 0, risk: 1, attention: 2, info: 3 } as const;
-
 const RANGE_OPTIONS = [
   { value: "7", label: "7 dias" },
   { value: "30", label: "30 dias" },
   { value: "90", label: "90 dias" },
-  { value: "365", label: "Ano" },
 ] as const;
-type RangeValue = (typeof RANGE_OPTIONS)[number]["value"];
 
 export const Route = createFileRoute("/_app/")({
   head: () => ({
     meta: [
-      { title: "Dashboard de Performance · People Performance Hub" },
+      { title: "Dashboard de Produtividade · People Performance Hub" },
       {
         name: "description",
         content:
-          "Acompanhe metas, entregas, evolução e feedbacks da sua equipe com clareza e foco em desenvolvimento.",
+          "Acompanhe tempo de uso por aplicativos, sites e dispositivos conectados ao Lovable Cloud.",
       },
     ],
   }),
@@ -67,301 +60,115 @@ export const Route = createFileRoute("/_app/")({
 });
 
 function DashboardPage() {
-  const { data: employees = [], isLoading: loadingEmployees } = useEmployees();
-  const { data: snapshots = [] } = useSnapshots();
-  const { data: alerts = [] } = useAlerts();
-  const { data: departments = [] } = useDepartments();
+  const [range, setRange] = useState<ProductivityDashboardRange>("30");
+  const { summary, sourceSummaries, deviceSummaries, dailySeries, isLoading, isError, error } =
+    useProductivityOverview(range);
 
-  const [range, setRange] = useState<RangeValue>("30");
-
-  const departmentName = useMemo(
-    () => new Map(departments.map((d) => [d.id, d.name] as const)),
-    [departments],
-  );
-  const employeeById = useMemo(
-    () => new Map(employees.map((e) => [e.id, e] as const)),
-    [employees],
-  );
-  const latest = useMemo(() => latestSnapshotsByEmployee(snapshots), [snapshots]);
-
-  const activeEmployees = employees.filter((e) => e.status === "active");
-
-  const scoredActive = activeEmployees
-    .map((e) => {
-      const l = latest.get(e.id);
-      return { employee: e, current: l?.current ?? null, previous: l?.previous ?? null };
-    })
-    .filter((x) => x.current !== null) as {
-      employee: (typeof employees)[number];
-      current: number;
-      previous: number | null;
-    }[];
-
-  const teamScore =
-    scoredActive.length > 0
-      ? scoredActive.reduce((sum, x) => sum + Number(x.current), 0) / scoredActive.length
-      : null;
-
-  const highlights = scoredActive.filter((x) => x.current >= 90);
-  const attention = scoredActive
-    .filter((x) => x.current >= 40 && x.current <= 74)
-    .sort((a, b) => {
-      const da = (a.current ?? 0) - (a.previous ?? a.current ?? 0);
-      const db = (b.current ?? 0) - (b.previous ?? b.current ?? 0);
-      return da - db; // bigger drops first
-    });
-
-  const openAlerts = alerts;
-  const criticalAlerts = alerts.filter((a) => a.severity === "critical").length;
-  const attentionAlerts = alerts.filter((a) => a.severity === "attention").length;
-
-  const sortedAlerts = [...openAlerts].sort(
-    (a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity],
-  );
-
-  const distribution = buildDistribution(employees, latest);
-  const series = buildEvolutionSeries(snapshots, Number(range));
-
-  const recommended = useMemo(() => {
-    const items: { title: string; reason: string; priority: "alta" | "média" | "baixa" }[] = [];
-    const drops = scoredActive.filter(
-      (x) => x.previous !== null && (x.current ?? 0) - (x.previous ?? 0) <= -5,
-    );
-    if (drops.length > 0) {
-      items.push({
-        title: `Fazer 1:1 com ${drops.length} colaborador(es) com queda de score`,
-        reason: "Quedas recentes podem indicar bloqueios ou desmotivação.",
-        priority: "alta",
-      });
-    }
-    if (criticalAlerts > 0) {
-      items.push({
-        title: `Revisar ${criticalAlerts} alerta(s) crítico(s)`,
-        reason: "Alertas críticos exigem ação imediata.",
-        priority: "alta",
-      });
-    }
-    if (highlights.length > 0) {
-      items.push({
-        title: `Reconhecer ${highlights.length} pessoa(s) em alta performance`,
-        reason: "Reforço positivo sustenta consistência ao longo do tempo.",
-        priority: "média",
-      });
-    }
-    if (activeEmployees.length > 0 && scoredActive.length < activeEmployees.length) {
-      items.push({
-        title: "Registrar avaliação dos colaboradores sem snapshot",
-        reason: `${activeEmployees.length - scoredActive.length} pessoa(s) ainda sem score recente.`,
-        priority: "média",
-      });
-    }
-    return items;
-  }, [scoredActive, criticalAlerts, highlights.length, activeEmployees.length]);
-
-  const hasAnyEmployee = employees.length > 0;
+  const hasUsageData = summary.totalSeconds > 0;
+  const appPercentage =
+    summary.totalSeconds > 0 ? Math.round((summary.appSeconds / summary.totalSeconds) * 100) : 0;
+  const websitePercentage =
+    summary.totalSeconds > 0
+      ? Math.round((summary.websiteSeconds / summary.totalSeconds) * 100)
+      : 0;
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-8">
       <PageHeader
-        title="Dashboard de Performance"
-        description="Visão geral da equipe, evolução, riscos e ações recomendadas."
+        title="Dashboard de Produtividade"
+        description="Visão inicial do tempo monitorado por aplicativos, sites e dispositivos."
         actions={
-          <>
-            <Button variant="outline" size="sm">
-              <UserPlus className="h-4 w-4" />
-              Novo colaborador
-            </Button>
-            <Button variant="outline" size="sm">
-              <ClipboardCheck className="h-4 w-4" />
-              Registrar avaliação
-            </Button>
-            <Button size="sm">
-              <Sparkles className="h-4 w-4" />
-              Gerar insight IA
-            </Button>
-          </>
+          <FilterBar<ProductivityDashboardRange>
+            value={range}
+            onChange={setRange}
+            options={[...RANGE_OPTIONS]}
+          />
         }
       />
 
-      {/* Metric cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <ScoreCard
-          score={teamScore}
-          description={
-            scoredActive.length > 0
-              ? `Baseado em ${scoredActive.length} colaborador(es) ativo(s).`
-              : undefined
-          }
+      {isError && (
+        <EmptyState
+          icon={Database}
+          title="Não foi possível carregar os dados de produtividade"
+          description={getErrorMessage(error)}
+        />
+      )}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Tempo monitorado"
+          icon={Clock3}
+          value={formatDuration(summary.totalSeconds)}
+          isEmpty={!hasUsageData && !isLoading}
+          emptyMessage="Nenhum tempo registrado no período."
+          footer={isLoading ? "Carregando dados do Lovable Cloud..." : `Últimos ${range} dias.`}
         />
         <MetricCard
-          label="Colaboradores ativos"
-          icon={Users}
-          value={activeEmployees.length}
-          isEmpty={!hasAnyEmployee && !loadingEmployees}
-          emptyMessage="Nenhum colaborador cadastrado ainda."
+          label="Aplicativos"
+          icon={AppWindow}
+          value={formatDuration(summary.appSeconds)}
+          hint={hasUsageData ? `${appPercentage}%` : undefined}
+          isEmpty={!hasUsageData && !isLoading}
+          emptyMessage="Sem uso de aplicativos registrado."
+          footer="Tempo classificado como app."
+        />
+        <MetricCard
+          label="Sites"
+          icon={Globe2}
+          value={formatDuration(summary.websiteSeconds)}
+          hint={hasUsageData ? `${websitePercentage}%` : undefined}
+          isEmpty={!hasUsageData && !isLoading}
+          emptyMessage="Sem uso de sites registrado."
+          footer="Tempo classificado como website."
+        />
+        <MetricCard
+          label="Dispositivos ativos"
+          icon={Laptop}
+          value={summary.deviceCount}
+          isEmpty={!hasUsageData && !isLoading}
+          emptyMessage="Nenhum dispositivo com atividade."
           footer={
-            hasAnyEmployee
-              ? `${employees.length - activeEmployees.length} fora do ativo (férias, licença ou inativo).`
-              : undefined
+            summary.sourceCount > 0
+              ? `${summary.sourceCount} fonte(s) monitorada(s) no período.`
+              : "Aguardando envio de dados."
           }
-        />
-        <MetricCard
-          label="Pessoas em destaque"
-          icon={TrendingUp}
-          value={highlights.length}
-          isEmpty={scoredActive.length === 0}
-          emptyMessage="Sem dados suficientes para identificar destaques."
-          footer={highlights.length > 0 ? "Colaboradores com score ≥ 90." : undefined}
-        />
-        <MetricCard
-          label="Pessoas em atenção"
-          icon={AlertTriangle}
-          value={attention.length}
-          isEmpty={scoredActive.length === 0}
-          emptyMessage="Sem dados suficientes para identificar atenção."
-          footer={attention.length > 0 ? "Score entre 40 e 74. Priorize quem teve queda." : undefined}
-        />
-        <MetricCard
-          label="Alertas abertos"
-          icon={AlertOctagon}
-          value={openAlerts.length}
-          isEmpty={openAlerts.length === 0}
-          emptyMessage="Nenhum alerta aberto no momento."
-          footer={
-            openAlerts.length > 0
-              ? `${criticalAlerts} crítico(s) · ${attentionAlerts} em atenção`
-              : undefined
-          }
-        />
-        <MetricCard
-          label="Feedbacks pendentes"
-          icon={MessageSquare}
-          value={0}
-          isEmpty
-          emptyMessage="Tabela de feedbacks ainda não populada. Disponível em breve."
         />
       </div>
 
-      {/* Urgente agora */}
       <SectionCard
-        title="Urgente agora"
-        description="Alertas mais importantes em ordem de gravidade."
+        title="Uso diário"
+        description="Evolução do tempo monitorado no período selecionado."
       >
-        {sortedAlerts.length === 0 ? (
+        {dailySeries.length === 0 ? (
           <EmptyState
-            icon={CheckCircle2}
-            title="Nenhum alerta crítico no momento"
-            description="Continue acompanhando metas, feedbacks e avaliações para manter o radar atualizado."
+            icon={BarChart3}
+            title="Ainda não há histórico de uso"
+            description="Quando intervalos de uso forem registrados no Lovable Cloud, a tendência diária aparecerá aqui."
           />
         ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {sortedAlerts.slice(0, 6).map((alert) => (
-              <AlertCard
-                key={alert.id}
-                title={alert.title}
-                severity={alert.severity}
-                explanation={alert.explanation}
-                suggestedAction={alert.suggested_action}
-                employeeName={
-                  alert.employee_id ? employeeById.get(alert.employee_id)?.name ?? null : null
-                }
-                onView={() => {}}
-                onResolve={() => {}}
-                onIgnore={() => {}}
-              />
-            ))}
-          </div>
-        )}
-      </SectionCard>
-
-      {/* Destaques + Atenção */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <SectionCard
-          title="Pessoas em destaque"
-          description="Colaboradores com melhor performance recente."
-        >
-          {highlights.length === 0 ? (
-            <EmptyState
-              title="Ainda não há destaques para mostrar"
-              description="Registre avaliações para identificar quem está performando bem."
-            />
-          ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {highlights.slice(0, 4).map((x) => (
-                <EmployeeMiniCard
-                  key={x.employee.id}
-                  name={x.employee.name}
-                  role={x.employee.role}
-                  department={departmentName.get(x.employee.department_id ?? "") ?? null}
-                  avatarUrl={x.employee.avatar_url}
-                  score={x.current}
-                  highlight="Score acima de 90 na última avaliação."
-                  onOpen={() => {}}
-                />
-              ))}
-            </div>
-          )}
-        </SectionCard>
-
-        <SectionCard
-          title="Pessoas que precisam de atenção"
-          description="Tom cuidadoso: foco em desenvolvimento, não em julgamento."
-        >
-          {attention.length === 0 ? (
-            <EmptyState
-              title="Ninguém em atenção neste momento"
-              description="Sem registros de queda de score ou pendências importantes."
-            />
-          ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {attention.slice(0, 4).map((x) => {
-                const delta =
-                  x.previous !== null ? Number(x.current) - Number(x.previous) : null;
-                return (
-                  <EmployeeMiniCard
-                    key={x.employee.id}
-                    name={x.employee.name}
-                    role={x.employee.role}
-                    department={departmentName.get(x.employee.department_id ?? "") ?? null}
-                    avatarUrl={x.employee.avatar_url}
-                    score={x.current}
-                    delta={delta}
-                    reason={
-                      delta !== null && delta < 0
-                        ? "Queda no score em relação à última avaliação."
-                        : "Score em faixa de atenção."
-                    }
-                    suggestedAction="Agendar uma 1:1 e revisar metas e bloqueios."
-                    actionLabel="Abrir perfil"
-                    onOpen={() => {}}
-                  />
-                );
-              })}
-            </div>
-          )}
-        </SectionCard>
-      </div>
-
-      {/* Gráfico evolução */}
-      <SectionCard
-        title="Evolução da equipe"
-        description="Score médio ao longo do tempo."
-        action={<FilterBar<RangeValue> value={range} onChange={setRange} options={[...RANGE_OPTIONS]} />}
-      >
-        {series.length < 2 ? (
-          <EmptyState
-            icon={LineChartIcon}
-            title="Ainda não há histórico suficiente"
-            description="Conforme novas avaliações forem registradas, a evolução aparecerá aqui."
-          />
-        ) : (
-          <div className="h-64 w-full">
+          <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={series} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <AreaChart data={dailySeries} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="usageArea" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.28} />
+                    <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0.03} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--color-muted-foreground)" />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} stroke="var(--color-muted-foreground)" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 11 }}
+                  stroke="var(--color-muted-foreground)"
+                />
+                <YAxis
+                  tick={{ fontSize: 11 }}
+                  stroke="var(--color-muted-foreground)"
+                  tickFormatter={(value) => formatDuration(Number(value))}
+                />
                 <Tooltip
+                  formatter={(value) => formatDuration(Number(value))}
+                  labelFormatter={(label) => `Dia ${label}`}
                   contentStyle={{
                     background: "var(--color-card)",
                     border: "1px solid var(--color-border)",
@@ -369,113 +176,175 @@ function DashboardPage() {
                     fontSize: 12,
                   }}
                 />
-                <Line
+                <Area
                   type="monotone"
-                  dataKey="score"
+                  dataKey="totalSeconds"
+                  name="Tempo monitorado"
                   stroke="var(--color-primary)"
                   strokeWidth={2}
-                  dot={false}
+                  fill="url(#usageArea)"
                 />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         )}
       </SectionCard>
 
-      {/* Distribuição */}
-      <SectionCard
-        title="Distribuição de performance"
-        description="Quantos colaboradores existem em cada faixa."
-      >
-        {scoredActive.length === 0 ? (
-          <EmptyState
-            title="Ainda não há dados suficientes para esta distribuição"
-            description="Cadastre colaboradores e registre avaliações para visualizar a faixa de cada pessoa."
-          />
-        ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {distribution
-              .filter((b) => b.status !== "neutral" || b.count > 0)
-              .map((b) => (
-                <DistributionRow
-                  key={b.status}
-                  status={b.status}
-                  count={b.count}
-                  total={activeEmployees.length}
-                />
-              ))}
-          </div>
-        )}
-      </SectionCard>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <SectionCard
+          title="Aplicativos e sites mais usados"
+          description="Fontes ordenadas pelo tempo total registrado."
+        >
+          {sourceSummaries.length === 0 ? (
+            <EmptyState
+              icon={MousePointerClick}
+              title="Nenhuma fonte monitorada ainda"
+              description="Apps e sites aparecerão aqui assim que houver intervalos de uso vinculados a eles."
+            />
+          ) : (
+            <UsageSourceList items={sourceSummaries.slice(0, 8)} />
+          )}
+        </SectionCard>
 
-      {/* Ações recomendadas */}
+        <SectionCard
+          title="Dispositivos com atividade"
+          description="Computadores que enviaram intervalos de uso no período."
+        >
+          {deviceSummaries.length === 0 ? (
+            <EmptyState
+              icon={HardDrive}
+              title="Nenhum dispositivo ativo"
+              description="A base já está preparada para múltiplos computadores, mas ainda não há atividade registrada."
+            />
+          ) : (
+            <DeviceUsageList items={deviceSummaries.slice(0, 8)} />
+          )}
+        </SectionCard>
+      </div>
+
       <SectionCard
-        title="Ações recomendadas para hoje"
-        description="Sugestões geradas com base nos dados atuais."
+        title="Status da base de monitoramento"
+        description="O que já está pronto para receber dados de produtividade."
       >
-        {recommended.length === 0 ? (
-          <EmptyState
-            title="Sem ações recomendadas no momento"
-            description="Conforme novos dados forem registrados, sugestões personalizadas aparecerão aqui."
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <StatusItem
+            icon={ShieldCheck}
+            title="Isolamento por empresa"
+            description="As leituras passam pelo RLS do Lovable Cloud usando o vínculo de empresa do usuário."
           />
-        ) : (
-          <ul className="divide-y divide-border">
-            {recommended.map((item, i) => (
-              <li key={i} className="flex flex-wrap items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground">{item.title}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{item.reason}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={
-                      "rounded-full px-2 py-0.5 text-[11px] font-medium " +
-                      (item.priority === "alta"
-                        ? "bg-status-critical-soft text-status-critical"
-                        : item.priority === "média"
-                          ? "bg-status-attention-soft text-status-attention-foreground"
-                          : "bg-status-info-soft text-status-info")
-                    }
-                  >
-                    Prioridade {item.priority}
-                  </span>
-                  <Button size="sm" variant="outline">
-                    Ver ação
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+          <StatusItem
+            icon={MonitorDot}
+            title="Estrutura multi-dispositivo"
+            description="A base aceita múltiplos computadores por conta para suportar o coletor futuro."
+          />
+          <StatusItem
+            icon={Radar}
+            title="Coletor ainda não criado"
+            description="Esta etapa não instala nada no computador; apenas mostra os dados quando existirem."
+          />
+        </div>
       </SectionCard>
     </div>
   );
 }
 
-function DistributionRow({
-  status,
-  count,
-  total,
-}: {
-  status: ScoreStatus;
-  count: number;
-  total: number;
-}) {
-  const label = status === "neutral" ? "Sem avaliação" : scoreLabel(status);
-  const range = SCORE_RANGES.find((r) => r.status === status);
-  const pct = total > 0 ? (count / total) * 100 : 0;
+function UsageSourceList({ items }: { items: SourceUsageSummary[] }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        <span className="text-sm tabular-nums text-muted-foreground">{count}</span>
+    <div className="space-y-3">
+      {items.map((item) => (
+        <UsageRow
+          key={item.sourceId}
+          icon={item.sourceType === "app" ? AppWindow : Globe2}
+          title={item.name}
+          subtitle={`${USAGE_SOURCE_LABEL[item.sourceType]} · ${item.identifier}`}
+          totalSeconds={item.totalSeconds}
+          percentage={item.percentage}
+        />
+      ))}
+    </div>
+  );
+}
+
+function DeviceUsageList({ items }: { items: DeviceUsageSummary[] }) {
+  return (
+    <div className="space-y-3">
+      {items.map((item) => (
+        <UsageRow
+          key={item.deviceId}
+          icon={Laptop}
+          title={item.name}
+          subtitle={item.platform ?? "Plataforma não informada"}
+          totalSeconds={item.totalSeconds}
+          percentage={item.percentage}
+        />
+      ))}
+    </div>
+  );
+}
+
+function UsageRow({
+  icon: Icon,
+  title,
+  subtitle,
+  totalSeconds,
+  percentage,
+}: {
+  icon: typeof Activity;
+  title: string;
+  subtitle: string;
+  totalSeconds: number;
+  percentage: number;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-muted/20 p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground">
+            <Icon className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-foreground">{title}</p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">{subtitle}</p>
+          </div>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-sm font-semibold tabular-nums text-foreground">
+            {formatDuration(totalSeconds)}
+          </p>
+          <p className="text-xs text-muted-foreground">{Math.round(percentage)}%</p>
+        </div>
       </div>
-      <p className="mt-0.5 text-xs text-muted-foreground">
-        {range ? `Score ${range.min}–${range.max}` : "Sem score registrado"}
-      </p>
-      <div className="mt-3">
-        <ProgressBar value={pct} tone={scoreToStatus(range ? (range.min + range.max) / 2 : null)} />
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-border">
+        <div
+          className="h-full rounded-full bg-primary"
+          style={{ width: `${Math.max(3, Math.min(100, percentage))}%` }}
+        />
       </div>
     </div>
   );
+}
+
+function StatusItem({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: typeof Activity;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-muted/20 p-4">
+      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-background text-muted-foreground">
+        <Icon className="h-4 w-4" />
+      </div>
+      <h3 className="mt-3 text-sm font-semibold text-foreground">{title}</h3>
+      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return "Verifique se a migration de produtividade foi aplicada no Lovable Cloud.";
 }
