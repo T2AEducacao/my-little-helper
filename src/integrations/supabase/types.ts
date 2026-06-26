@@ -127,12 +127,15 @@ export type Database = {
       employees: {
         Row: {
           avatar_url: string | null
+          behavioral_profile: string | null
           company_id: string
+          contract_type: string | null
           created_at: string
           department_id: string | null
           email: string | null
           hire_date: string | null
           id: string
+          location: string | null
           manager_id: string | null
           name: string
           notes: string | null
@@ -143,12 +146,15 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          behavioral_profile?: string | null
           company_id: string
+          contract_type?: string | null
           created_at?: string
           department_id?: string | null
           email?: string | null
           hire_date?: string | null
           id?: string
+          location?: string | null
           manager_id?: string | null
           name: string
           notes?: string | null
@@ -159,12 +165,15 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          behavioral_profile?: string | null
           company_id?: string
+          contract_type?: string | null
           created_at?: string
           department_id?: string | null
           email?: string | null
           hire_date?: string | null
           id?: string
+          location?: string | null
           manager_id?: string | null
           name?: string
           notes?: string | null
