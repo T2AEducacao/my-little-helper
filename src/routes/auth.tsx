@@ -64,7 +64,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword(parsed);
         if (error) throw error;
         toast.success("Bem-vindo de volta!");
-        navigate({ to: "/" });
+        navigate({ to: "/", replace: true });
       } else {
         const parsed = signUpSchema.parse(form);
         const { data, error } = await supabase.auth.signUp({
@@ -78,10 +78,31 @@ function AuthPage() {
         if (error) throw error;
         if (data.session) {
           toast.success("Conta criada! Entrando...");
-          navigate({ to: "/" });
-        } else {
-          toast.success("Conta criada! Verifique seu e-mail para confirmar o acesso.");
+          navigate({ to: "/", replace: true });
+          return;
         }
+
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: parsed.email,
+          password: parsed.password,
+        });
+        if (signInError) {
+          const requiresEmailConfirmation =
+            signInError.message.toLowerCase().includes("confirm") ||
+            signInError.message.toLowerCase().includes("not confirmed");
+
+          throw new Error(
+            requiresEmailConfirmation
+              ? "O Auth ainda exige confirmação de e-mail. Desative essa opção no Lovable Cloud/Supabase para cadastro imediato."
+              : signInError.message,
+          );
+        }
+        if (!signInData.session) {
+          throw new Error("Conta criada, mas não foi possível iniciar a sessão automaticamente.");
+        }
+
+        toast.success("Conta criada! Entrando...");
+        navigate({ to: "/", replace: true });
       }
     } catch (err) {
       const msg = err instanceof z.ZodError ? err.issues[0].message : err instanceof Error ? err.message : "Erro";
@@ -96,7 +117,7 @@ function AuthPage() {
     try {
       const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
       if ("error" in result && result.error) throw result.error;
-      if (!("redirected" in result) || !result.redirected) navigate({ to: "/" });
+      if (!("redirected" in result) || !result.redirected) navigate({ to: "/", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha no login Google");
       setLoading(false);
