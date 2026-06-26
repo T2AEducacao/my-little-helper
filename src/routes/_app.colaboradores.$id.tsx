@@ -285,7 +285,7 @@ function EmployeeProfilePage() {
           <SectionCard
             title="Evolução recente"
             description="Score individual ao longo do tempo."
-            actions={
+            action={
               <FilterBar
                 value={String(rangeDays)}
                 onChange={(v) => setRangeDays(Number(v))}
@@ -312,7 +312,13 @@ function EmployeeProfilePage() {
               ) : (
                 <div className="space-y-3">
                   {openAlerts.map((a) => (
-                    <AlertCard key={a.id} alert={a} />
+                    <AlertCard
+                      key={a.id}
+                      title={a.title}
+                      severity={a.severity}
+                      explanation={a.explanation}
+                      suggestedAction={a.suggested_action}
+                    />
                   ))}
                 </div>
               )}
