@@ -1,8 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
+import { lovableCloudAuth } from "@/integrations/lovable/auth";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -22,6 +21,60 @@ const signUpSchema = signInSchema.extend({
   company_name: z.string().trim().min(2, "Informe a empresa").max(120),
 });
 
+const AUTH_FALLBACK_MESSAGE =
+  "Não foi possível concluir o acesso pelo Lovable Cloud. Tente novamente em instantes.";
+
+function cleanAuthMessage(message: string) {
+  const trimmed = message.replace(/\+/g, " ").trim();
+
+  if (!trimmed || trimmed === "{}") return AUTH_FALLBACK_MESSAGE;
+
+  const lower = trimmed.toLowerCase();
+  if (lower.includes("invalid login credentials")) {
+    return "E-mail ou senha inválidos.";
+  }
+  if (lower.includes("email not confirmed")) {
+    return "Confirme seu e-mail antes de entrar.";
+  }
+  if (lower.includes("already registered") || lower.includes("user already exists")) {
+    return "Este e-mail já possui cadastro. Entre com sua senha ou use outro e-mail.";
+  }
+  if (lower.includes("database error saving new user")) {
+    return "Não foi possível finalizar o cadastro no Lovable Cloud. Revise a configuração de perfil do usuário no backend.";
+  }
+
+  return trimmed;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function getAuthErrorMessage(error: unknown) {
+  if (error instanceof z.ZodError) {
+    return error.issues[0]?.message ?? "Verifique os dados informados.";
+  }
+
+  if (error instanceof Error) {
+    return cleanAuthMessage(error.message);
+  }
+
+  if (typeof error === "string") {
+    return cleanAuthMessage(error);
+  }
+
+  if (isRecord(error)) {
+    for (const key of ["message", "error_description", "error", "details", "hint"]) {
+      const value = error[key];
+      if (typeof value === "string" && value.trim()) {
+        return cleanAuthMessage(value);
+      }
+    }
+  }
+
+  return AUTH_FALLBACK_MESSAGE;
+}
+
 function readAuthErrorFromUrl() {
   const search = new URLSearchParams(window.location.search);
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
@@ -31,7 +84,7 @@ function readAuthErrorFromUrl() {
     search.get("error") ||
     hash.get("error");
 
-  return message ? message.replace(/\+/g, " ") : null;
+  return message ? cleanAuthMessage(message) : null;
 }
 
 function AuthPage() {
@@ -45,17 +98,17 @@ function AuthPage() {
     const authError = readAuthErrorFromUrl();
     const errorTimer = authError ? window.setTimeout(() => toast.error(authError), 0) : undefined;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!cancelled && data.session) navigate({ to: "/", replace: true });
+    lovableCloudAuth.getSession().then((session) => {
+      if (!cancelled && session) navigate({ to: "/", replace: true });
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    const unsubscribe = lovableCloudAuth.onAuthStateChange((_event, session) => {
       if (!cancelled && session) navigate({ to: "/", replace: true });
     });
 
     return () => {
       cancelled = true;
       if (errorTimer) window.clearTimeout(errorTimer);
-      sub.subscription.unsubscribe();
+      unsubscribe();
     };
   }, [navigate]);
 
@@ -65,22 +118,19 @@ function AuthPage() {
     try {
       if (mode === "signin") {
         const parsed = signInSchema.parse({ email: form.email, password: form.password });
-        const { error } = await supabase.auth.signInWithPassword(parsed);
-        if (error) throw error;
+        await lovableCloudAuth.signInWithPassword(parsed);
         toast.success("Bem-vindo de volta!");
         navigate({ to: "/", replace: true });
       } else {
         const parsed = signUpSchema.parse(form);
-        const { data, error } = await supabase.auth.signUp({
+        const { session } = await lovableCloudAuth.signUpWithPassword({
           email: parsed.email,
           password: parsed.password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { full_name: parsed.full_name, company_name: parsed.company_name },
-          },
+          fullName: parsed.full_name,
+          companyName: parsed.company_name,
+          emailRedirectTo: window.location.origin,
         });
-        if (error) throw error;
-        if (data.session) {
+        if (session) {
           toast.success("Conta criada! Entrando...");
           navigate({ to: "/", replace: true });
           return;
@@ -90,8 +140,8 @@ function AuthPage() {
         setForm({ email: parsed.email, password: "", full_name: "", company_name: "" });
       }
     } catch (err) {
-      const msg = err instanceof z.ZodError ? err.issues[0].message : err instanceof Error ? err.message : "Erro";
-      toast.error(msg);
+      console.error("Lovable Cloud auth error", err);
+      toast.error(getAuthErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -100,11 +150,11 @@ function AuthPage() {
   const google = async () => {
     setLoading(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-      if ("error" in result && result.error) throw result.error;
-      if (!("redirected" in result) || !result.redirected) navigate({ to: "/", replace: true });
+      const result = await lovableCloudAuth.signInWithGoogle(window.location.origin);
+      if (!result.redirected) navigate({ to: "/", replace: true });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha no login Google");
+      console.error("Lovable Cloud Google auth error", err);
+      toast.error(getAuthErrorMessage(err));
       setLoading(false);
     }
   };
@@ -119,7 +169,13 @@ function AuthPage() {
           </p>
         </div>
 
-        <Button type="button" variant="outline" className="w-full" onClick={google} disabled={loading}>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={google}
+          disabled={loading}
+        >
           Continuar com Google
         </Button>
 
@@ -134,21 +190,43 @@ function AuthPage() {
             <>
               <div>
                 <Label htmlFor="full_name">Seu nome</Label>
-                <Input id="full_name" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required />
+                <Input
+                  id="full_name"
+                  value={form.full_name}
+                  onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                  required
+                />
               </div>
               <div>
                 <Label htmlFor="company_name">Nome da empresa</Label>
-                <Input id="company_name" value={form.company_name} onChange={(e) => setForm({ ...form, company_name: e.target.value })} required />
+                <Input
+                  id="company_name"
+                  value={form.company_name}
+                  onChange={(e) => setForm({ ...form, company_name: e.target.value })}
+                  required
+                />
               </div>
             </>
           )}
           <div>
             <Label htmlFor="email">E-mail</Label>
-            <Input id="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+            <Input
+              id="email"
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              required
+            />
           </div>
           <div>
             <Label htmlFor="password">Senha</Label>
-            <Input id="password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
+            <Input
+              id="password"
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required
+            />
           </div>
           <Button type="submit" disabled={loading} className="mt-2">
             {loading ? "Aguarde…" : mode === "signin" ? "Entrar" : "Criar conta"}

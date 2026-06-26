@@ -2,7 +2,7 @@ import { AppHeader } from "@/components/php/AppHeader";
 import { AppSidebar } from "@/components/php/AppSidebar";
 import { MobileBottomNav } from "@/components/php/MobileBottomNav";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { supabase } from "@/integrations/supabase/client";
+import { lovableCloudAuth } from "@/integrations/lovable/auth";
 import { Outlet, createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
@@ -31,12 +31,12 @@ function AppLayout() {
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
+    lovableCloudAuth.getSession().then((session) => {
       if (!mounted) return;
-      if (!data.session) navigate({ to: "/auth", replace: true });
+      if (!session) navigate({ to: "/auth", replace: true });
       else setChecked(true);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+    const unsubscribe = lovableCloudAuth.onAuthStateChange((event, session) => {
       if (!mounted) return;
       if (session) {
         setChecked(true);
@@ -49,7 +49,7 @@ function AppLayout() {
     });
     return () => {
       mounted = false;
-      sub.subscription.unsubscribe();
+      unsubscribe();
     };
   }, [navigate]);
 
@@ -78,4 +78,3 @@ function AppLayout() {
     </SidebarProvider>
   );
 }
-

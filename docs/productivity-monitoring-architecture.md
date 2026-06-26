@@ -54,6 +54,10 @@ Backend changes should use Lovable Cloud as the source of truth for data and
 authentication. Do not introduce a separate Supabase development workflow unless
 the project scope changes again.
 
+Application code should depend on Lovable Cloud adapters, such as
+`src/integrations/lovable/auth.ts`, instead of importing backend client details
+directly into routes or UI components.
+
 Data access should stay scoped by company and user ownership. Any schema or auth
 change should be reviewed against the existing Lovable Cloud configuration before
 being pushed.

@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Bell, LogOut, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { lovableCloudAuth } from "@/integrations/lovable/auth";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -17,7 +17,7 @@ export function AppHeader({ title }: Props) {
   const signOut = async () => {
     await queryClient.cancelQueries();
     queryClient.clear();
-    await supabase.auth.signOut();
+    await lovableCloudAuth.signOut();
     navigate({ to: "/auth", replace: true });
   };
 
@@ -44,4 +44,3 @@ export function AppHeader({ title }: Props) {
     </header>
   );
 }
-
