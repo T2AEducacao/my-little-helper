@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppReunioesRouteImport } from './routes/_app.reunioes'
@@ -22,6 +23,11 @@ import { Route as AppAvaliacoesRouteImport } from './routes/_app.avaliacoes'
 import { Route as AppAlertasRouteImport } from './routes/_app.alertas'
 import { Route as AppColaboradoresIdRouteImport } from './routes/_app.colaboradores.$id'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
@@ -84,6 +90,7 @@ const AppColaboradoresIdRoute = AppColaboradoresIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/auth': typeof AuthRoute
   '/alertas': typeof AppAlertasRoute
   '/avaliacoes': typeof AppAvaliacoesRoute
   '/colaboradores': typeof AppColaboradoresRouteWithChildren
@@ -96,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/colaboradores/$id': typeof AppColaboradoresIdRoute
 }
 export interface FileRoutesByTo {
+  '/auth': typeof AuthRoute
   '/alertas': typeof AppAlertasRoute
   '/avaliacoes': typeof AppAvaliacoesRoute
   '/colaboradores': typeof AppColaboradoresRouteWithChildren
@@ -111,6 +119,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/auth': typeof AuthRoute
   '/_app/alertas': typeof AppAlertasRoute
   '/_app/avaliacoes': typeof AppAvaliacoesRoute
   '/_app/colaboradores': typeof AppColaboradoresRouteWithChildren
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/alertas'
     | '/avaliacoes'
     | '/colaboradores'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/colaboradores/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/auth'
     | '/alertas'
     | '/avaliacoes'
     | '/colaboradores'
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_app'
+    | '/auth'
     | '/_app/alertas'
     | '/_app/avaliacoes'
     | '/_app/colaboradores'
@@ -168,10 +180,18 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app': {
       id: '/_app'
       path: ''
@@ -300,6 +320,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
