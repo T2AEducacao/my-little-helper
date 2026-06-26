@@ -182,17 +182,18 @@ function EmployeeProfilePage() {
         <ScoreCard
           score={latest?.overall_score ?? null}
           label="Score individual"
-          subtitle={
+          description={
             latest
               ? diff === null
-                ? "Sem comparativo anterior"
+                ? "Sem comparativo anterior."
                 : diff > 0
-                ? `+${diff.toFixed(1)} vs período anterior`
+                ? `+${diff.toFixed(1)} pontos vs. período anterior.`
                 : diff < 0
-                ? `${diff.toFixed(1)} vs período anterior`
-                : "Estável vs período anterior"
-              : "Ainda sem score calculado"
+                ? `${diff.toFixed(1)} pontos vs. período anterior.`
+                : "Estável em relação ao período anterior."
+              : undefined
           }
+          emptyMessage="Ainda não há score calculado para este colaborador."
         />
         <MetricCard
           icon={Target}
