@@ -1,10 +1,11 @@
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Bell, LogOut, Search } from "lucide-react";
+import { Bell, LogOut, Moon, Search, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { lovableCloudAuth } from "@/integrations/lovable/auth";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 
 interface Props {
   title: string;
@@ -13,6 +14,23 @@ interface Props {
 export function AppHeader({ title }: Props) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    const storedTheme = window.localStorage.getItem("theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const shouldUseDark = storedTheme ? storedTheme === "dark" : prefersDark;
+
+    document.documentElement.classList.toggle("dark", shouldUseDark);
+    setIsDarkMode(shouldUseDark);
+  }, []);
+
+  const toggleTheme = () => {
+    const nextIsDarkMode = !isDarkMode;
+    document.documentElement.classList.toggle("dark", nextIsDarkMode);
+    window.localStorage.setItem("theme", nextIsDarkMode ? "dark" : "light");
+    setIsDarkMode(nextIsDarkMode);
+  };
 
   const signOut = async () => {
     await queryClient.cancelQueries();
@@ -39,6 +57,16 @@ export function AppHeader({ title }: Props) {
         </div>
         <Button variant="ghost" size="icon" aria-label="Notificações" className="h-9 w-9">
           <Bell className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label={isDarkMode ? "Ativar modo claro" : "Ativar modo escuro"}
+          title={isDarkMode ? "Ativar modo claro" : "Ativar modo escuro"}
+          className="h-9 w-9 bg-card shadow-[var(--shadow-soft)]"
+          onClick={toggleTheme}
+        >
+          {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
         <Button variant="ghost" size="icon" aria-label="Sair" className="h-9 w-9" onClick={signOut}>
           <LogOut className="h-4 w-4" />
