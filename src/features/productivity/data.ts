@@ -42,7 +42,7 @@ const INTERVAL_COLS =
 
 type ProductivityQueryResult<T> = {
   data: T[] | null;
-  error: { message: string } | null;
+  error: { code?: string; details?: string; hint?: string; message?: string } | null;
 };
 
 type ProductivityQuery<T> = PromiseLike<ProductivityQueryResult<T>> & {
@@ -108,6 +108,7 @@ export function useMonitoredDevices() {
         .select<MonitoredDevice>(DEVICE_COLS)
         .order("name", { ascending: true });
 
+      if (isProductivitySchemaPending(error)) return [];
       if (error) throw error;
       return data ?? [];
     },
@@ -123,6 +124,7 @@ export function useUsageSources() {
         .select<UsageSource>(SOURCE_COLS)
         .order("name", { ascending: true });
 
+      if (isProductivitySchemaPending(error)) return [];
       if (error) throw error;
       return data ?? [];
     },
@@ -143,6 +145,7 @@ export function useUsageIntervals(range: ProductivityDashboardRange) {
         .order("started_at", { ascending: true })
         .limit(5000);
 
+      if (isProductivitySchemaPending(error)) return [];
       if (error) throw error;
       return data ?? [];
     },
@@ -301,4 +304,23 @@ export function buildDailyUsageSeries(intervals: UsageIntervalWithSource[]): Dai
   }
 
   return Array.from(byDay.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function isProductivitySchemaPending(error: ProductivityQueryResult<unknown>["error"]): boolean {
+  if (!error) return false;
+
+  const message = error.message?.toLowerCase() ?? "";
+  const details = error.details?.toLowerCase() ?? "";
+  const hint = error.hint?.toLowerCase() ?? "";
+  const text = `${message} ${details} ${hint}`;
+
+  return (
+    error.code === "PGRST205" ||
+    error.code === "42P01" ||
+    text.includes("could not find the table") ||
+    text.includes("monitored_devices") ||
+    text.includes("usage_sources") ||
+    text.includes("usage_intervals") ||
+    (text.includes("relation") && text.includes("does not exist"))
+  );
 }
