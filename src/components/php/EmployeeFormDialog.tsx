@@ -12,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -24,9 +23,6 @@ import {
   useCreateEmployee,
   useUpdateEmployee,
   useDepartments,
-  useEmployees,
-  useCreateDepartment,
-  SENIORITY_OPTIONS,
   STATUS_LABEL,
   type EmployeeRow,
   type EmployeeStatus,
@@ -41,10 +37,13 @@ type Props = {
   onSaved?: (e: EmployeeRow) => void;
 };
 
+const WORK_MODELS = ["Remoto", "Presencial", "Híbrido"] as const;
+type WorkModel = (typeof WORK_MODELS)[number];
+
 const EMPTY: EmployeeInput = {
   name: "",
-  email: "",
-  role: "",
+  email: null,
+  role: null,
   department_id: null,
   manager_id: null,
   seniority: null,
@@ -57,13 +56,20 @@ const EMPTY: EmployeeInput = {
   status: "active",
 };
 
+function normalizeWorkModel(value: string | null | undefined): WorkModel | "" {
+  if (!value) return "";
+  const found = WORK_MODELS.find(
+    (w) => w.toLowerCase() === value.trim().toLowerCase(),
+  );
+  return found ?? "";
+}
+
 export function EmployeeFormDialog({ open, onOpenChange, employee, onSaved }: Props) {
   const isEdit = !!employee;
   const [form, setForm] = useState<EmployeeInput>(EMPTY);
   const [deptOpen, setDeptOpen] = useState(false);
 
   const { data: departments = [] } = useDepartments();
-  const { data: employees = [] } = useEmployees();
   const create = useCreateEmployee();
   const update = useUpdateEmployee();
 
@@ -72,8 +78,8 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSaved }: Pr
       if (employee) {
         setForm({
           name: employee.name,
-          email: employee.email ?? "",
-          role: employee.role ?? "",
+          email: employee.email,
+          role: employee.role,
           department_id: employee.department_id,
           manager_id: employee.manager_id,
           seniority: employee.seniority,
@@ -99,19 +105,10 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSaved }: Pr
     e.preventDefault();
     const name = form.name.trim();
     if (!name) return toast.error("Informe o nome do colaborador.");
-    const emailTrim = (form.email ?? "").trim();
-    if (!emailTrim) return toast.error("Informe um e-mail válido.");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim))
-      return toast.error("E-mail inválido.");
-    if (!form.role || !form.role.trim()) return toast.error("Informe o cargo.");
-    if (!form.department_id) return toast.error("Selecione a área/departamento.");
+    if (!form.department_id) return toast.error("Selecione a área.");
+    if (!form.location) return toast.error("Selecione o modelo de trabalho.");
 
-    const input: EmployeeInput = {
-      ...form,
-      name,
-      email: emailTrim,
-      role: form.role.trim(),
-    };
+    const input: EmployeeInput = { ...form, name };
 
     try {
       if (isEdit && employee) {
@@ -126,29 +123,24 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSaved }: Pr
       onOpenChange(false);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao salvar.";
-      if (msg.includes("employees_company_email_unique")) {
-        toast.error("Já existe um colaborador com este e-mail nesta empresa.");
-      } else {
-        toast.error(msg);
-      }
+      toast.error(msg);
     }
   }
 
-  const managerCandidates = employees.filter((e) => e.id !== employee?.id);
   const saving = create.isPending || update.isPending;
+  const workModel = normalizeWorkModel(form.location);
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{isEdit ? "Editar colaborador" : "Novo colaborador"}</DialogTitle>
             <DialogDescription>
-              Preencha as informações principais. O histórico de avaliações, metas e
-              feedbacks é preservado.
+              Preencha as informações essenciais.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+          <form onSubmit={handleSubmit} className="grid gap-4">
             <Field label="Nome" required>
               <Input
                 value={form.name}
@@ -156,22 +148,20 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSaved }: Pr
                 placeholder="Nome completo"
               />
             </Field>
-            <Field label="E-mail" required>
-              <Input
-                type="email"
-                value={form.email ?? ""}
-                onChange={(e) => set("email", e.target.value)}
-                placeholder="pessoa@empresa.com"
-              />
+            <Field label="Status" required>
+              <Select
+                value={form.status}
+                onValueChange={(v) => set("status", v as EmployeeStatus)}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(STATUS_LABEL) as EmployeeStatus[]).map((s) => (
+                    <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
-            <Field label="Cargo" required>
-              <Input
-                value={form.role ?? ""}
-                onChange={(e) => set("role", e.target.value)}
-                placeholder="Ex.: Analista de Marketing"
-              />
-            </Field>
-            <Field label="Área / departamento" required>
+            <Field label="Área" required>
               <div className="flex gap-2">
                 <Select
                   value={form.department_id ?? ""}
@@ -193,102 +183,22 @@ export function EmployeeFormDialog({ open, onOpenChange, employee, onSaved }: Pr
                 </Button>
               </div>
             </Field>
-            <Field label="Status" required>
+            <Field label="Modelo de trabalho" required>
               <Select
-                value={form.status}
-                onValueChange={(v) => set("status", v as EmployeeStatus)}
+                value={workModel}
+                onValueChange={(v) => set("location", v || null)}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
                 <SelectContent>
-                  {(Object.keys(STATUS_LABEL) as EmployeeStatus[]).map((s) => (
-                    <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
+                  {WORK_MODELS.map((w) => (
+                    <SelectItem key={w} value={w}>{w}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Senioridade">
-              <Select
-                value={form.seniority ?? ""}
-                onValueChange={(v) => set("seniority", v || null)}
-              >
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {SENIORITY_OPTIONS.map((s) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Gestor responsável">
-              <Select
-                value={form.manager_id ?? ""}
-                onValueChange={(v) => set("manager_id", v || null)}
-              >
-                <SelectTrigger><SelectValue placeholder="Sem gestor" /></SelectTrigger>
-                <SelectContent>
-                  {managerCandidates.length === 0 && (
-                    <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                      Cadastre outras pessoas primeiro
-                    </div>
-                  )}
-                  {managerCandidates.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Data de entrada">
-              <Input
-                type="date"
-                value={form.hire_date ?? ""}
-                onChange={(e) => set("hire_date", e.target.value || null)}
-              />
-            </Field>
-            <Field label="Tipo de contrato">
-              <Select
-                value={form.contract_type ?? ""}
-                onValueChange={(v) => set("contract_type", v || null)}
-              >
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="CLT">CLT</SelectItem>
-                  <SelectItem value="PJ">PJ</SelectItem>
-                  <SelectItem value="Estágio">Estágio</SelectItem>
-                  <SelectItem value="Temporário">Temporário</SelectItem>
-                  <SelectItem value="Freelancer">Freelancer</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Localidade">
-              <Input
-                value={form.location ?? ""}
-                onChange={(e) => set("location", e.target.value || null)}
-                placeholder="Ex.: São Paulo / Remoto"
-              />
-            </Field>
-            <Field label="URL do avatar">
-              <Input
-                value={form.avatar_url ?? ""}
-                onChange={(e) => set("avatar_url", e.target.value || null)}
-                placeholder="https://..."
-              />
-            </Field>
-            <Field label="Perfil comportamental">
-              <Input
-                value={form.behavioral_profile ?? ""}
-                onChange={(e) => set("behavioral_profile", e.target.value || null)}
-                placeholder="Ex.: Analítico, Comunicador"
-              />
-            </Field>
-            <Field label="Observações" className="sm:col-span-2">
-              <Textarea
-                rows={3}
-                value={form.notes ?? ""}
-                onChange={(e) => set("notes", e.target.value || null)}
-                placeholder="Notas internas (visíveis apenas ao RH e gestores)."
-              />
-            </Field>
-            <DialogFooter className="sm:col-span-2">
+            <DialogFooter>
               <Button
                 type="button"
                 variant="ghost"
