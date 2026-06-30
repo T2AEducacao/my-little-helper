@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute, Link, notFound, useNavigate, useParams } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
+  type LucideIcon,
   ArrowLeft,
   Pencil,
   ClipboardCheck,
@@ -41,6 +42,10 @@ import { AlertCard } from "@/components/php/AlertCard";
 import { FilterBar } from "@/components/php/FilterBar";
 import { EmployeeFormDialog } from "@/components/php/EmployeeFormDialog";
 import { scoreToStatus, scoreLabel } from "@/components/php/types";
+import {
+  usePerformanceWorkspaceData,
+  type PerformanceGoal,
+} from "@/features/performance/workspace-data";
 import {
   useEmployee,
   useEmployees,
@@ -101,6 +106,7 @@ function EmployeeProfilePage() {
   const { data: snapshots = [] } = useEmployeeSnapshots(id);
   const { data: alerts = [] } = useEmployeeAlerts(id);
   const { data: activity = [] } = useEmployeeActivity(id);
+  const performanceData = usePerformanceWorkspaceData(employees);
 
   const [editOpen, setEditOpen] = useState(false);
   const [rangeDays, setRangeDays] = useState(90);
@@ -128,6 +134,14 @@ function EmployeeProfilePage() {
       ? latest.overall_score - previous.overall_score
       : null;
   const openAlerts = alerts.filter((a) => a.status === "open" || a.status === "analyzing");
+  const employeeGoals = performanceData.goals.filter((goal) => goal.employee_id === employee.id);
+  const decisionSummary = buildDecisionSummary({
+    score: latest?.overall_score ?? null,
+    diff,
+    openAlerts,
+    goals: employeeGoals,
+  });
+  const ActionIcon = decisionSummary.actionIcon;
 
   return (
     <div className="space-y-6">
@@ -144,8 +158,8 @@ function EmployeeProfilePage() {
         </Button>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+      <div className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)]">
+        <div className="grid gap-5 xl:grid-cols-[1fr_360px] xl:items-start">
           <div className="flex items-start gap-4">
             <Avatar className="h-16 w-16">
               {employee.avatar_url && <AvatarImage src={employee.avatar_url} alt={employee.name} />}
@@ -180,22 +194,48 @@ function EmployeeProfilePage() {
               </dl>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
-              <Pencil className="mr-1.5 h-4 w-4" /> Editar
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => toast("Disponível em breve.")}>
-              <ClipboardCheck className="mr-1.5 h-4 w-4" /> Avaliação
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => toast("Disponível em breve.")}>
-              <MessageSquare className="mr-1.5 h-4 w-4" /> Feedback
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => toast("Disponível em breve.")}>
-              <CalendarPlus className="mr-1.5 h-4 w-4" /> 1:1
-            </Button>
-            <Button size="sm" onClick={() => toast("Disponível em breve.")}>
-              <Target className="mr-1.5 h-4 w-4" /> Plano de desenvolvimento
-            </Button>
+          <div className="rounded-xl border border-border bg-muted/20 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <StatusBadge tone={decisionSummary.tone}>{decisionSummary.statusLabel}</StatusBadge>
+              <span className="text-xs font-medium text-muted-foreground">
+                {decisionSummary.trendLabel}
+              </span>
+            </div>
+
+            <p className="mt-3 text-sm font-semibold leading-5 text-foreground">
+              {decisionSummary.reason}
+            </p>
+
+            <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
+              <div className="rounded-lg bg-background px-3 py-2">
+                <p className="text-[11px] font-medium text-muted-foreground">Score</p>
+                <p className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">
+                  {latest?.overall_score != null ? `${Math.round(latest.overall_score)}/100` : "—"}
+                </p>
+              </div>
+              <div className="rounded-lg bg-background px-3 py-2">
+                <p className="text-[11px] font-medium text-muted-foreground">Alertas</p>
+                <p className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">
+                  {openAlerts.length}
+                </p>
+              </div>
+              <div className="rounded-lg bg-background px-3 py-2">
+                <p className="text-[11px] font-medium text-muted-foreground">Metas risco</p>
+                <p className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">
+                  {employeeGoals.filter((goal) => goal.status === "risk").length}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => toast(decisionSummary.actionToast)}>
+                <ActionIcon className="mr-1.5 h-4 w-4" />
+                {decisionSummary.actionLabel}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+                <Pencil className="mr-1.5 h-4 w-4" /> Editar
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -467,6 +507,107 @@ function Detail({
       <span className="truncate text-foreground">{value}</span>
     </div>
   );
+}
+
+type DecisionInput = {
+  score: number | null;
+  diff: number | null;
+  openAlerts: { severity: "info" | "attention" | "risk" | "critical" }[];
+  goals: PerformanceGoal[];
+};
+
+function buildDecisionSummary({ score, diff, openAlerts, goals }: DecisionInput): {
+  statusLabel: string;
+  tone: "info" | "attention" | "risk" | "critical" | "good";
+  trendLabel: string;
+  reason: string;
+  actionLabel: string;
+  actionToast: string;
+  actionIcon: LucideIcon;
+} {
+  const hasCriticalAlert = openAlerts.some((alert) => alert.severity === "critical");
+  const hasRiskAlert = openAlerts.some((alert) => alert.severity === "risk");
+  const riskGoals = goals.filter((goal) => goal.status === "risk").length;
+  const isFalling = diff !== null && diff <= -5;
+  const isImproving = diff !== null && diff >= 5;
+
+  const status =
+    hasCriticalAlert || (score !== null && score < 60)
+      ? "critical"
+      : hasRiskAlert || riskGoals > 0 || isFalling || (score !== null && score < 75)
+        ? "attention"
+        : "healthy";
+
+  const trendLabel =
+    diff === null
+      ? "Sem comparativo"
+      : isImproving
+        ? `Melhorando +${diff.toFixed(1)} pts`
+        : isFalling
+          ? `Piorando ${diff.toFixed(1)} pts`
+          : "Estável";
+
+  if (status === "critical") {
+    return {
+      statusLabel: "Crítico",
+      tone: "critical",
+      trendLabel,
+      reason: hasCriticalAlert
+        ? "alerta crítico aberto exige ação imediata do gestor"
+        : "score abaixo da zona segura para este colaborador",
+      actionLabel: "Agendar 1:1",
+      actionToast: "Disponível em breve: agendar 1:1 para tratar o risco.",
+      actionIcon: CalendarPlus,
+    };
+  }
+
+  if (riskGoals > 0) {
+    return {
+      statusLabel: "Atenção",
+      tone: "attention",
+      trendLabel,
+      reason: "meta em risco precisa de revisão e correção de rota",
+      actionLabel: "Revisar metas",
+      actionToast: "Disponível em breve: revisar metas deste colaborador.",
+      actionIcon: Target,
+    };
+  }
+
+  if (status === "attention") {
+    return {
+      statusLabel: "Atenção",
+      tone: "attention",
+      trendLabel,
+      reason: isFalling
+        ? "queda recente de performance pede conversa de acompanhamento"
+        : "sinais de atenção indicam necessidade de acompanhamento próximo",
+      actionLabel: "Registrar feedback",
+      actionToast: "Disponível em breve: registrar feedback de acompanhamento.",
+      actionIcon: MessageSquare,
+    };
+  }
+
+  if (score !== null && score >= 85) {
+    return {
+      statusLabel: "Saudável",
+      tone: "good",
+      trendLabel,
+      reason: "performance saudável com oportunidade de reforço positivo",
+      actionLabel: "Reconhecer",
+      actionToast: "Disponível em breve: registrar reconhecimento.",
+      actionIcon: MessageSquare,
+    };
+  }
+
+  return {
+    statusLabel: "Saudável",
+    tone: "good",
+    trendLabel,
+    reason: "nenhum risco relevante identificado no momento",
+    actionLabel: "Acompanhar",
+    actionToast: "Disponível em breve: registrar acompanhamento.",
+    actionIcon: MessageSquare,
+  };
 }
 
 function SubBlock({ title, children }: { title: string; children: React.ReactNode }) {
