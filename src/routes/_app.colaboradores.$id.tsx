@@ -19,7 +19,12 @@ import {
   CalendarClock,
   Users,
   MapPin,
+  Mail,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   LineChart,
   Line,
