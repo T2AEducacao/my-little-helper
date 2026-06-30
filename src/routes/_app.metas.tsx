@@ -596,3 +596,115 @@ function initials(name: string): string {
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
 }
+
+function LocalGoalsSection({
+  goals,
+  onComplete,
+}: {
+  goals: LocalGoal[];
+  onComplete: (id: string) => void;
+}) {
+  return (
+    <SectionCard
+      title="Minhas metas"
+      description="Metas criadas por você. Persistidas localmente neste navegador."
+    >
+      {goals.length === 0 ? (
+        <EmptyState
+          icon={Target}
+          title="Nenhuma meta criada ainda"
+          description='Clique em "+ Criar Meta" para começar.'
+        />
+      ) : (
+        <div className="divide-y divide-border rounded-xl border border-border">
+          {goals.map((goal) => {
+            const isDone = goal.status === "completed";
+            const dueInfo = getLocalDueInfo(goal.prazo, goal.status);
+            return (
+              <article
+                key={goal.id}
+                className="grid items-center gap-4 px-4 py-3 hover:bg-muted/20 lg:grid-cols-[minmax(0,1fr)_180px_140px_auto]"
+              >
+                <div className="min-w-0">
+                  <h4
+                    className={cn(
+                      "truncate text-sm font-medium text-foreground",
+                      isDone && "text-muted-foreground line-through",
+                    )}
+                  >
+                    {goal.nome}
+                  </h4>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Criada em {formatGoalDate(goal.created_at)}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Avatar className="h-5 w-5">
+                    <AvatarFallback className="bg-primary/10 text-[10px] text-primary">
+                      {initials(goal.funcionario_nome)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="truncate">{goal.funcionario_nome}</span>
+                </div>
+
+                <div className="text-xs">
+                  <div
+                    className={cn(
+                      "inline-flex items-center gap-1 font-medium tabular-nums",
+                      dueInfo.tone === "risk" && "text-status-risk",
+                      dueInfo.tone === "attention" && "text-status-attention-foreground",
+                      dueInfo.tone === "neutral" && "text-muted-foreground",
+                      dueInfo.tone === "good" && "text-foreground",
+                    )}
+                  >
+                    <CalendarClock className="h-3.5 w-3.5" />
+                    {dueInfo.label}
+                  </div>
+                  <div className="mt-0.5 text-muted-foreground">
+                    {formatGoalDate(goal.prazo)}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2">
+                  {isDone ? (
+                    <StatusBadge tone="excellent">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Concluída
+                    </StatusBadge>
+                  ) : (
+                    <>
+                      <StatusBadge tone="neutral">Em andamento</StatusBadge>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onComplete(goal.id)}
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Meta finalizada
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+function getLocalDueInfo(
+  date: string,
+  status: "pending" | "completed",
+): { label: string; tone: "risk" | "attention" | "good" | "neutral" } {
+  if (status === "completed") return { label: "Concluída", tone: "neutral" };
+  const days = daysUntil(date);
+  if (days === null) return { label: "Sem prazo", tone: "neutral" };
+  if (days < 0) return { label: `${Math.abs(days)}d atrasada`, tone: "risk" };
+  if (days === 0) return { label: "Vence hoje", tone: "risk" };
+  if (days <= 7) return { label: `Em ${days}d`, tone: "attention" };
+  return { label: `Em ${days}d`, tone: "good" };
+}
+
