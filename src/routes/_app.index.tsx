@@ -74,6 +74,7 @@ function ManagementCenterPage() {
   const snapshots = performanceData.snapshots;
   const alerts = performanceData.actions;
   const goals = performanceData.goals;
+  const progressSummary = performanceData.progressSummary;
 
   const [range, setRange] = useState<RangeValue>("30");
 
@@ -369,6 +370,56 @@ function ManagementCenterPage() {
           />
         </Link>
       </div>
+
+      <SectionCard
+        title="Progresso gerado hoje"
+        description="O avanço operacional criado pelas ações concluídas pelo gestor."
+        action={
+          <Button asChild variant="outline" size="sm">
+            <Link to="/alertas">
+              Ver ações
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        }
+      >
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <MetricCard
+            label="Pendências resolvidas hoje"
+            icon={CheckCircle2}
+            value={progressSummary.resolvedToday}
+            isEmpty={progressSummary.resolvedToday === 0}
+            emptyMessage="Nada resolvido hoje."
+            footer={
+              progressSummary.openActionsCount > 0
+                ? `${progressSummary.openActionsCount} pendência(s) ainda aberta(s).`
+                : "Fila de ações sem pendências abertas."
+            }
+            className="h-full border-status-excellent/30"
+            trend={
+              progressSummary.resolvedToday > 0
+                ? { direction: "up", label: "Execução avançando", positive: true }
+                : { direction: "flat", label: "Aguardando execução" }
+            }
+          />
+          <MetricCard
+            label="Pessoas com ações tratadas"
+            icon={Users}
+            value={progressSummary.peopleWithResolvedActions}
+            isEmpty={progressSummary.peopleWithResolvedActions === 0}
+            emptyMessage="Nenhuma pessoa tratada."
+            footer="Conta pessoas vinculadas a ações concluídas, sem assumir melhora automática."
+          />
+          <MetricCard
+            label="Encaminhamentos gerados"
+            icon={ListChecks}
+            value={progressSummary.generatedFollowUps}
+            isEmpty={progressSummary.generatedFollowUps === 0}
+            emptyMessage="Nenhum encaminhamento."
+            footer="Mostra decisões e próximos passos já tirados da fila."
+          />
+        </div>
+      </SectionCard>
 
       <SectionCard
         title="Mudanças desde a última atualização"

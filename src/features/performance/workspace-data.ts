@@ -21,37 +21,52 @@ export type PerformanceGoal = {
   description: string;
 };
 
+export type PerformanceProgressSummary = {
+  resolvedToday: number;
+  peopleWithResolvedActions: number;
+  generatedFollowUps: number;
+  openActionsCount: number;
+};
+
 export type PerformanceWorkspaceData = {
   employees: PerformanceEmployee[];
   actions: AlertRow[];
   resolvedActions: AlertRow[];
   goals: PerformanceGoal[];
   snapshots: SnapshotRow[];
+  progressSummary: PerformanceProgressSummary;
   resolveAction: (actionId: string) => void;
   isMocked: boolean;
 };
 
 const RESOLVED_ACTIONS_STORAGE_KEY = "people-performance.mock.resolved-actions.v1";
 
+type ResolvedActionRecord = {
+  id: string;
+  resolved_at: string;
+};
+
 export function usePerformanceWorkspaceData(employees: EmployeeRow[]): PerformanceWorkspaceData {
-  const [resolvedActionIds, setResolvedActionIds] = useState<Set<string>>(() => new Set());
+  const [resolvedActionRecords, setResolvedActionRecords] = useState<Map<string, string>>(
+    () => new Map(),
+  );
   const [storageLoaded, setStorageLoaded] = useState(false);
 
   useEffect(() => {
-    setResolvedActionIds(readResolvedActionIds());
+    setResolvedActionRecords(readResolvedActionRecords());
     setStorageLoaded(true);
   }, []);
 
   useEffect(() => {
     if (!storageLoaded) return;
-    writeResolvedActionIds(resolvedActionIds);
-  }, [resolvedActionIds, storageLoaded]);
+    writeResolvedActionRecords(resolvedActionRecords);
+  }, [resolvedActionRecords, storageLoaded]);
 
   const resolveAction = useCallback((actionId: string) => {
-    setResolvedActionIds((current) => {
+    setResolvedActionRecords((current) => {
       if (current.has(actionId)) return current;
-      const next = new Set(current);
-      next.add(actionId);
+      const next = new Map(current);
+      next.set(actionId, new Date().toISOString());
       return next;
     });
   }, []);
@@ -63,20 +78,25 @@ export function usePerformanceWorkspaceData(employees: EmployeeRow[]): Performan
   const actions = useMemo(
     () =>
       baseActions
-        .filter((action) => !resolvedActionIds.has(action.id))
+        .filter((action) => !resolvedActionRecords.has(action.id))
         .map((action) => ({
           ...action,
           status: action.status === "resolved" ? "open" : action.status,
         })),
-    [baseActions, resolvedActionIds],
+    [baseActions, resolvedActionRecords],
   );
 
   const resolvedActions = useMemo(
     () =>
       baseActions
-        .filter((action) => resolvedActionIds.has(action.id))
+        .filter((action) => resolvedActionRecords.has(action.id))
         .map((action) => ({ ...action, status: "resolved" as const })),
-    [baseActions, resolvedActionIds],
+    [baseActions, resolvedActionRecords],
+  );
+
+  const progressSummary = useMemo(
+    () => buildProgressSummary(actions, resolvedActions, resolvedActionRecords),
+    [actions, resolvedActions, resolvedActionRecords],
   );
 
   return useMemo(
@@ -86,10 +106,11 @@ export function usePerformanceWorkspaceData(employees: EmployeeRow[]): Performan
       resolvedActions,
       goals: buildMockGoals(performanceEmployees),
       snapshots: buildMockSnapshots(performanceEmployees),
+      progressSummary,
       resolveAction,
       isMocked: true,
     }),
-    [actions, performanceEmployees, resolveAction, resolvedActions],
+    [actions, performanceEmployees, progressSummary, resolveAction, resolvedActions],
   );
 }
 
@@ -104,29 +125,87 @@ function buildPerformanceEmployees(employees: EmployeeRow[]): PerformanceEmploye
   ];
 }
 
-function readResolvedActionIds(): Set<string> {
-  if (typeof window === "undefined") return new Set();
+function readResolvedActionRecords(): Map<string, string> {
+  if (typeof window === "undefined") return new Map();
 
   try {
     const raw = window.localStorage.getItem(RESOLVED_ACTIONS_STORAGE_KEY);
-    if (!raw) return new Set();
+    if (!raw) return new Map();
     const value = JSON.parse(raw);
-    return Array.isArray(value)
-      ? new Set(value.filter((item) => typeof item === "string"))
-      : new Set();
+    if (!Array.isArray(value)) return new Map();
+
+    return new Map(
+      value
+        .map((item): ResolvedActionRecord | null => {
+          if (typeof item === "string") {
+            return { id: item, resolved_at: new Date().toISOString() };
+          }
+
+          if (
+            item &&
+            typeof item === "object" &&
+            typeof item.id === "string" &&
+            typeof item.resolved_at === "string"
+          ) {
+            return { id: item.id, resolved_at: item.resolved_at };
+          }
+
+          return null;
+        })
+        .filter((item): item is ResolvedActionRecord => item !== null)
+        .map((item) => [item.id, item.resolved_at] as const),
+    );
   } catch {
-    return new Set();
+    return new Map();
   }
 }
 
-function writeResolvedActionIds(actionIds: Set<string>): void {
+function writeResolvedActionRecords(actionRecords: Map<string, string>): void {
   if (typeof window === "undefined") return;
 
   try {
-    window.localStorage.setItem(RESOLVED_ACTIONS_STORAGE_KEY, JSON.stringify([...actionIds]));
+    const value: ResolvedActionRecord[] = [...actionRecords].map(([id, resolved_at]) => ({
+      id,
+      resolved_at,
+    }));
+    window.localStorage.setItem(RESOLVED_ACTIONS_STORAGE_KEY, JSON.stringify(value));
   } catch {
     // Local persistence is a convenience for mock data and should never break the UI.
   }
+}
+
+function buildProgressSummary(
+  actions: AlertRow[],
+  resolvedActions: AlertRow[],
+  resolvedActionRecords: Map<string, string>,
+): PerformanceProgressSummary {
+  const resolvedToday = resolvedActions.filter((action) =>
+    isToday(resolvedActionRecords.get(action.id)),
+  ).length;
+  const peopleWithResolvedActions = new Set(
+    resolvedActions
+      .map((action) => action.employee_id)
+      .filter((employeeId): employeeId is string => Boolean(employeeId)),
+  ).size;
+
+  return {
+    resolvedToday,
+    peopleWithResolvedActions,
+    generatedFollowUps: resolvedActions.filter((action) => Boolean(action.suggested_action)).length,
+    openActionsCount: actions.length,
+  };
+}
+
+function isToday(value?: string): boolean {
+  if (!value) return false;
+  const date = new Date(value);
+  const today = new Date();
+
+  return (
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  );
 }
 
 function buildMockActions(employees: PerformanceEmployee[]): AlertRow[] {
