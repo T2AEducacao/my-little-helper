@@ -12,6 +12,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { KeyRound, Copy, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,9 +22,16 @@ type Props = {
   employeeName: string;
   hasAccess: boolean;
   defaultEmail?: string | null;
+  variant?: "button" | "menu-item";
 };
 
-export function EmployeeAccessButton({ employeeId, employeeName, hasAccess, defaultEmail }: Props) {
+export function EmployeeAccessButton({
+  employeeId,
+  employeeName,
+  hasAccess,
+  defaultEmail,
+  variant = "button",
+}: Props) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState(defaultEmail ?? "");
   const [loading, setLoading] = useState(false);
@@ -58,21 +66,40 @@ export function EmployeeAccessButton({ employeeId, employeeName, hasAccess, defa
     toast.success("Copiado");
   };
 
-  if (hasAccess) {
-    return (
+  const trigger =
+    variant === "menu-item" ? (
+      <DropdownMenuItem
+        disabled={hasAccess}
+        onSelect={(e) => {
+          e.preventDefault();
+          if (!hasAccess) setOpen(true);
+        }}
+      >
+        {hasAccess ? (
+          <>
+            <CheckCircle2 className="mr-2 h-4 w-4 text-status-excellent" /> Acesso ativo
+          </>
+        ) : (
+          <>
+            <KeyRound className="mr-2 h-4 w-4" /> Criar acesso
+          </>
+        )}
+      </DropdownMenuItem>
+    ) : hasAccess ? (
       <Button size="sm" variant="outline" disabled className="gap-1.5">
         <CheckCircle2 className="h-4 w-4 text-status-excellent" />
         Acesso ativo
       </Button>
-    );
-  }
-
-  return (
-    <>
+    ) : (
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
         <KeyRound className="h-4 w-4" />
         Criar acesso
       </Button>
+    );
+
+  return (
+    <>
+      {trigger}
 
       <Dialog
         open={open}
