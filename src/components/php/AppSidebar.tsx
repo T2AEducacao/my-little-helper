@@ -42,8 +42,8 @@ export function AppSidebar() {
             <BarChart3 className="h-4 w-4" />
           </div>
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-semibold tracking-tight">People Hub</span>
-            <span className="text-[11px] text-sidebar-foreground/60">Performance de Efetivo</span>
+            <span className="text-sm font-semibold tracking-tight">Performativo</span>
+            <span className="text-[11px] text-sidebar-foreground/60">Gestão de Performance</span>
           </div>
         </Link>
       </SidebarHeader>
