@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AlertRow, EmployeeRow, SnapshotRow } from "@/lib/php-data";
 
 export type PerformanceGoalStatus = "risk" | "on_track" | "achieved";
@@ -19,21 +19,95 @@ export type PerformanceGoal = {
 
 export type PerformanceWorkspaceData = {
   actions: AlertRow[];
+  resolvedActions: AlertRow[];
   goals: PerformanceGoal[];
   snapshots: SnapshotRow[];
+  resolveAction: (actionId: string) => void;
   isMocked: boolean;
 };
 
+const RESOLVED_ACTIONS_STORAGE_KEY = "people-performance.mock.resolved-actions.v1";
+
 export function usePerformanceWorkspaceData(employees: EmployeeRow[]): PerformanceWorkspaceData {
+  const [resolvedActionIds, setResolvedActionIds] = useState<Set<string>>(() => new Set());
+  const [storageLoaded, setStorageLoaded] = useState(false);
+
+  useEffect(() => {
+    setResolvedActionIds(readResolvedActionIds());
+    setStorageLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!storageLoaded) return;
+    writeResolvedActionIds(resolvedActionIds);
+  }, [resolvedActionIds, storageLoaded]);
+
+  const resolveAction = useCallback((actionId: string) => {
+    setResolvedActionIds((current) => {
+      if (current.has(actionId)) return current;
+      const next = new Set(current);
+      next.add(actionId);
+      return next;
+    });
+  }, []);
+
+  const baseActions = useMemo(() => buildMockActions(employees), [employees]);
+
+  const actions = useMemo(
+    () =>
+      baseActions
+        .filter((action) => !resolvedActionIds.has(action.id))
+        .map((action) => ({
+          ...action,
+          status: action.status === "resolved" ? "open" : action.status,
+        })),
+    [baseActions, resolvedActionIds],
+  );
+
+  const resolvedActions = useMemo(
+    () =>
+      baseActions
+        .filter((action) => resolvedActionIds.has(action.id))
+        .map((action) => ({ ...action, status: "resolved" as const })),
+    [baseActions, resolvedActionIds],
+  );
+
   return useMemo(
     () => ({
-      actions: buildMockActions(employees),
+      actions,
+      resolvedActions,
       goals: buildMockGoals(employees),
       snapshots: buildMockSnapshots(employees),
+      resolveAction,
       isMocked: true,
     }),
-    [employees],
+    [actions, employees, resolveAction, resolvedActions],
   );
+}
+
+function readResolvedActionIds(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+
+  try {
+    const raw = window.localStorage.getItem(RESOLVED_ACTIONS_STORAGE_KEY);
+    if (!raw) return new Set();
+    const value = JSON.parse(raw);
+    return Array.isArray(value)
+      ? new Set(value.filter((item) => typeof item === "string"))
+      : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function writeResolvedActionIds(actionIds: Set<string>): void {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(RESOLVED_ACTIONS_STORAGE_KEY, JSON.stringify([...actionIds]));
+  } catch {
+    // Local persistence is a convenience for mock data and should never break the UI.
+  }
 }
 
 function buildMockActions(employees: EmployeeRow[]): AlertRow[] {

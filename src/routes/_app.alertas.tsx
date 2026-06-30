@@ -1,4 +1,5 @@
 import { EmptyState } from "@/components/php/EmptyState";
+import { FilterBar } from "@/components/php/FilterBar";
 import { MetricCard } from "@/components/php/MetricCard";
 import { PageHeader } from "@/components/php/PageHeader";
 import { SectionCard } from "@/components/php/SectionCard";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { usePerformanceWorkspaceData } from "@/features/performance/workspace-data";
 import { useEmployees, type AlertRow, type EmployeeRow } from "@/lib/php-data";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { toast } from "sonner";
 import {
   AlertTriangle,
   ArrowRight,
@@ -15,10 +17,9 @@ import {
   ClipboardCheck,
   Info,
   MessageSquare,
-  Sparkles,
   Target,
 } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/_app/alertas")({
   head: () => ({
@@ -44,10 +45,19 @@ const PRIORITY_META: Record<
   info: { label: "Baixa", order: 3, tone: "info", icon: Info },
 };
 
+const ACTION_VIEW_OPTIONS = [
+  { value: "pending", label: "Pendentes" },
+  { value: "resolved", label: "Resolvidas" },
+] as const;
+
+type ActionView = (typeof ACTION_VIEW_OPTIONS)[number]["value"];
+
 function ActionsPage() {
   const { data: employees = [], isLoading: loadingEmployees } = useEmployees();
+  const [actionView, setActionView] = useState<ActionView>("pending");
   const performanceData = usePerformanceWorkspaceData(employees);
   const alerts = performanceData.actions;
+  const resolvedAlerts = performanceData.resolvedActions;
 
   const employeeById = useMemo(
     () => new Map(employees.map((employee) => [employee.id, employee] as const)),
@@ -63,14 +73,30 @@ function ActionsPage() {
       }),
     [alerts],
   );
+  const resolvedItems = useMemo(
+    () =>
+      [...resolvedAlerts].sort((a, b) => {
+        const priority = PRIORITY_META[a.severity].order - PRIORITY_META[b.severity].order;
+        if (priority !== 0) return priority;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }),
+    [resolvedAlerts],
+  );
+  const visibleItems = actionView === "pending" ? priorityItems : resolvedItems;
+  const isResolvedView = actionView === "resolved";
   const criticalActions = priorityItems.filter((alert) => alert.severity === "critical").length;
   const todayActions = priorityItems.filter((alert) => isToday(alert.created_at)).length;
   const goalActions = priorityItems.filter(
     (alert) => getActionContext(alert).tab === "goals",
   ).length;
-  const recognitionActions = priorityItems.filter((alert) =>
-    includesAny(getActionText(alert), ["reconhecimento", "elogio"]),
-  ).length;
+  const resolvedActions = resolvedItems.length;
+
+  function handleResolveAction(alert: AlertRow) {
+    performanceData.resolveAction(alert.id);
+    toast.success("Ação marcada como resolvida", {
+      description: "A fila foi atualizada e o item saiu das pendências.",
+    });
+  }
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -114,12 +140,12 @@ function ActionsPage() {
           footer="Metas em risco e KPIs pendentes aparecerão aqui."
         />
         <MetricCard
-          label="Reconhecimentos"
-          icon={Sparkles}
-          value={recognitionActions}
-          isEmpty={recognitionActions === 0}
-          emptyMessage="Nenhuma sugestão."
-          footer="Ações positivas também devem entrar na rotina."
+          label="Resolvidas"
+          icon={CheckCircle2}
+          value={resolvedActions}
+          isEmpty={resolvedActions === 0}
+          emptyMessage="Nenhuma ação resolvida."
+          footer="Itens concluídos saem da fila principal."
           className="border-status-excellent/30"
         />
       </div>
@@ -128,24 +154,37 @@ function ActionsPage() {
         <SectionCard
           title="Fila de prioridades"
           description="Prioridades que exigem decisão do gestor, da mais urgente para a menos urgente."
+          action={
+            <FilterBar<ActionView>
+              value={actionView}
+              onChange={setActionView}
+              options={[...ACTION_VIEW_OPTIONS]}
+            />
+          }
         >
           {loadingEmployees ? (
             <div className="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-sm text-muted-foreground">
               Carregando prioridades...
             </div>
-          ) : priorityItems.length === 0 ? (
+          ) : visibleItems.length === 0 ? (
             <EmptyState
-              icon={ClipboardCheck}
-              title="Nenhuma prioridade carregada"
-              description="Quando houver alertas, pessoas em atenção ou KPIs pendentes, eles aparecerão nesta fila."
+              icon={isResolvedView ? CheckCircle2 : ClipboardCheck}
+              title={isResolvedView ? "Nenhuma ação resolvida" : "Nenhuma prioridade pendente"}
+              description={
+                isResolvedView
+                  ? "Quando o gestor concluir pendências, elas ficarão disponíveis aqui para conferência."
+                  : "Quando houver alertas, pessoas em atenção ou KPIs pendentes, eles aparecerão nesta fila."
+              }
             />
           ) : (
             <div className="divide-y divide-border">
-              {priorityItems.map((alert) => (
+              {visibleItems.map((alert) => (
                 <PriorityQueueItem
                   key={alert.id}
                   alert={alert}
                   employee={alert.employee_id ? employeeById.get(alert.employee_id) : undefined}
+                  isResolved={isResolvedView}
+                  onResolve={handleResolveAction}
                 />
               ))}
             </div>
@@ -178,7 +217,17 @@ function ActionsPage() {
   );
 }
 
-function PriorityQueueItem({ alert, employee }: { alert: AlertRow; employee?: EmployeeRow }) {
+function PriorityQueueItem({
+  alert,
+  employee,
+  isResolved,
+  onResolve,
+}: {
+  alert: AlertRow;
+  employee?: EmployeeRow;
+  isResolved?: boolean;
+  onResolve: (alert: AlertRow) => void;
+}) {
   const meta = PRIORITY_META[alert.severity];
   const Icon = meta.icon;
   const category = alert.employee_id ? "Colaborador" : "Gestão";
@@ -197,6 +246,7 @@ function PriorityQueueItem({ alert, employee }: { alert: AlertRow; employee?: Em
         >
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
+            {isResolved && <StatusBadge tone="good">Resolvida</StatusBadge>}
             <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
               {category}
             </span>
@@ -228,12 +278,20 @@ function PriorityQueueItem({ alert, employee }: { alert: AlertRow; employee?: Em
         </Link>
 
         <div className="flex shrink-0 lg:justify-end">
-          <Button asChild size="sm" variant={employee ? "default" : "outline"}>
-            <Link to={destination.to} params={destination.params} search={destination.search}>
-              {destination.label}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            {!isResolved && (
+              <Button size="sm" onClick={() => onResolve(alert)}>
+                <CheckCircle2 className="h-4 w-4" />
+                Marcar como resolvida
+              </Button>
+            )}
+            <Button asChild size="sm" variant="outline">
+              <Link to={destination.to} params={destination.params} search={destination.search}>
+                {isResolved ? "Ver contexto" : destination.label}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
     </article>
