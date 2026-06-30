@@ -7,8 +7,10 @@ import { PageHeader } from "@/components/php/PageHeader";
 import { ProgressBar } from "@/components/php/ProgressBar";
 import { ScoreCard } from "@/components/php/ScoreCard";
 import { SectionCard } from "@/components/php/SectionCard";
+import { StatusBadge } from "@/components/php/StatusBadge";
 import { SCORE_RANGES, scoreLabel, scoreToStatus, type ScoreStatus } from "@/components/php/types";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   buildDistribution,
   buildEvolutionSeries,
@@ -158,94 +160,83 @@ function ManagementCenterPage() {
   const distribution = buildDistribution(performanceEmployees, latest);
   const series = buildEvolutionSeries(snapshots, Number(range));
   const goalsAtRisk = goals.filter((goal) => goal.status === "risk").length;
-  const riskMomentum =
-    enteredAttention.length + drops.length > leftRisk.length + improvements.length
-      ? "up"
-      : leftRisk.length + improvements.length > enteredAttention.length + drops.length
-        ? "down"
-        : "flat";
-  const topRecentChanges = [
-    ...drops.slice(0, 2).map((item) => ({
-      id: `drop-${item.employee.id}`,
-      title: `${item.employee.name} piorou ${Math.abs(item.current - (item.previous ?? item.current)).toFixed(1)} pts`,
-      reason: "Priorize uma conversa objetiva para entender bloqueios recentes.",
-      to: item.employee.is_mock ? "/alertas" : "/colaboradores/$id",
-      params: item.employee.is_mock ? undefined : { id: item.employee.id },
-    })),
-    ...enteredAttention.slice(0, 2).map((item) => ({
-      id: `attention-${item.employee.id}`,
-      title: `${item.employee.name} entrou em atenção`,
-      reason: "O status saiu da zona saudável e exige acompanhamento próximo.",
-      to: item.employee.is_mock ? "/alertas" : "/colaboradores/$id",
-      params: item.employee.is_mock ? undefined : { id: item.employee.id },
-    })),
-    ...improvements.slice(0, 2).map((item) => ({
-      id: `improvement-${item.employee.id}`,
-      title: `${item.employee.name} melhorou ${Math.abs(item.current - (item.previous ?? item.current)).toFixed(1)} pts`,
-      reason: "Boa oportunidade para reforço positivo ou reconhecimento.",
-      to: item.employee.is_mock ? "/alertas" : "/colaboradores/$id",
-      params: item.employee.is_mock ? undefined : { id: item.employee.id },
-    })),
-  ].slice(0, 4);
 
-  const recommended = useMemo(() => {
+  // Team status strip buckets
+  const statusBuckets = useMemo(() => {
+    const map = new Map<ScoreStatus, number>([
+      ["excellent", 0],
+      ["good", 0],
+      ["attention", 0],
+      ["risk", 0],
+      ["critical", 0],
+    ]);
+    for (const item of scoredActive) {
+      const s = scoreToStatus(item.current);
+      if (s !== "neutral") map.set(s, (map.get(s) ?? 0) + 1);
+    }
+    return map;
+  }, [scoredActive]);
+
+  // Sparkline data (last 14 points, normalized)
+  const sparklineData = useMemo(() => buildEvolutionSeries(snapshots, 30), [snapshots]);
+  const sparkDelta =
+    sparklineData.length >= 2
+      ? sparklineData[sparklineData.length - 1].score - sparklineData[0].score
+      : null;
+
+  const topActions = useMemo(() => {
     const items: {
+      id: string;
       title: string;
       reason: string;
       priority: "alta" | "média" | "baixa";
-      to: string;
+      to: "/colaboradores/$id" | "/colaboradores" | "/alertas";
+      params?: { id: string };
     }[] = [];
 
+    drops.slice(0, 2).forEach((item) =>
+      items.push({
+        id: `drop-${item.employee.id}`,
+        title: `${item.employee.name} caiu ${Math.abs(item.current - (item.previous ?? item.current)).toFixed(1)} pts`,
+        reason: "Investigue bloqueios e proponha próximo passo.",
+        priority: "alta",
+        to: item.employee.is_mock ? "/alertas" : "/colaboradores/$id",
+        params: item.employee.is_mock ? undefined : { id: item.employee.id },
+      }),
+    );
     if (criticalAlerts > 0) {
       items.push({
-        title: `Resolver ${criticalAlerts} alerta(s) crítico(s)`,
-        reason: "Há sinais que exigem ação rápida do gestor.",
+        id: "critical-alerts",
+        title: `${criticalAlerts} alerta(s) crítico(s) abertos`,
+        reason: "Resolva o que exige decisão imediata.",
         priority: "alta",
         to: "/alertas",
       });
     }
-
-    if (drops.length > 0) {
+    attention.slice(0, 2).forEach((item) =>
       items.push({
-        title: `Investigar ${drops.length} queda(s) de desempenho`,
-        reason: "Quedas recentes podem indicar bloqueios, desalinhamento ou sobrecarga.",
-        priority: "alta",
-        to: "/colaboradores",
-      });
-    }
-
-    if (attention.length > 0) {
-      items.push({
-        title: `Acompanhar ${attention.length} colaborador(es) em atenção`,
-        reason: "Priorize conversas objetivas e remoção de bloqueios.",
+        id: `att-${item.employee.id}`,
+        title: `${item.employee.name} em atenção`,
+        reason: "Score abaixo da faixa saudável. Marque uma conversa.",
         priority: "média",
-        to: "/colaboradores",
-      });
-    }
-
-    if (highlights.length > 0) {
-      items.push({
-        title: `Reconhecer ${highlights.length} colaborador(es) em alto desempenho`,
-        reason: "Reconhecimento reforça comportamento consistente e referência para a equipe.",
-        priority: "média",
-        to: "/colaboradores",
-      });
-    }
-
+        to: item.employee.is_mock ? "/alertas" : "/colaboradores/$id",
+        params: item.employee.is_mock ? undefined : { id: item.employee.id },
+      }),
+    );
     if (withoutRecentScore > 0) {
       items.push({
-        title: `Registrar KPI de ${withoutRecentScore} colaborador(es) ativo(s)`,
-        reason: "Sem dados recentes, o gestor perde visibilidade para decidir.",
+        id: "missing-kpi",
+        title: `${withoutRecentScore} ativo(s) sem KPI recente`,
+        reason: "Sem dados, fica difícil decidir. Registre avaliação.",
         priority: "baixa",
         to: "/colaboradores",
       });
     }
-
-    return items;
-  }, [attention.length, criticalAlerts, drops.length, highlights.length, withoutRecentScore]);
+    return items.slice(0, 4);
+  }, [drops, criticalAlerts, attention, withoutRecentScore]);
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-8">
+    <div className="mx-auto flex max-w-7xl flex-col gap-6">
       <PageHeader
         title="Central de Gestão"
         description="Abra o dia sabendo onde agir: riscos, pessoas em atenção, destaques e próximos passos."
@@ -267,295 +258,219 @@ function ManagementCenterPage() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-        <Link to="/alertas" className="block lg:col-span-2">
-          <MetricCard
-            label="O que preciso fazer hoje?"
-            icon={ListChecks}
-            value={actionCount}
-            hint="ações"
-            isEmpty={actionCount === 0 && !loadingEmployees}
-            emptyMessage="Nenhuma ação crítica no momento."
-            footer={
-              actionCount > 0
-                ? `${openAlerts.length} alerta(s), ${attention.length} pessoa(s) em atenção e ${withoutRecentScore} sem KPI recente.`
-                : "Acompanhe novamente quando novos dados forem registrados."
-            }
-            className={
-              actionCount > 0
-                ? "h-full border-status-critical/30 bg-status-critical-soft/30 transition hover:border-status-critical/60"
-                : "h-full transition hover:border-primary/40"
-            }
-          />
-        </Link>
+      {/* Status strip da equipe — leitura em < 1s */}
+      <TeamStatusStrip
+        buckets={statusBuckets}
+        withoutScore={withoutRecentScore}
+        total={activeEmployees.length}
+      />
 
-        <Link to="/colaboradores" className="block">
-          <MetricCard
-            label="Quem precisa de atenção?"
-            icon={AlertTriangle}
-            value={attention.length}
-            isEmpty={scoredActive.length === 0}
-            emptyMessage="Sem KPIs suficientes."
-            footer={
-              attention.length > 0
-                ? "Score abaixo de 75 ou queda relevante."
-                : "Nenhum colaborador em atenção."
-            }
-            className="h-full transition hover:border-status-attention/70"
-          />
-        </Link>
-
-        <Link to="/colaboradores" className="block">
-          <MetricCard
-            label="Quem merece reconhecimento?"
-            icon={Sparkles}
-            value={highlights.length}
-            isEmpty={scoredActive.length === 0}
-            emptyMessage="Sem dados suficientes."
-            footer={
-              highlights.length > 0
-                ? "Score igual ou acima de 90."
-                : "Nenhum destaque identificado ainda."
-            }
-            className="h-full transition hover:border-status-excellent/70"
-          />
-        </Link>
-      </div>
-
+      {/* Hero row: O que fazer hoje (2/3) + Score da equipe com sparkline (1/3) */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Link to="/colaboradores" className="block">
-          <ScoreCard
-            score={teamScore}
-            description={
-              scoredActive.length > 0
-                ? `Saúde geral baseada em ${scoredActive.length} colaborador(es) com KPI recente.`
-                : undefined
-            }
-          />
-        </Link>
-
-        <Link to="/metas" className="block">
-          <MetricCard
-            label="Quais metas estão em risco?"
-            icon={Target}
-            value={goalsAtRisk}
-            isEmpty={goalsAtRisk === 0}
-            emptyMessage="Nenhuma meta em risco."
-            footer={
-              goalsAtRisk > 0
-                ? "Clique para revisar metas que precisam de correção de rota."
-                : "Metas simuladas aparecem aqui quando entram em risco."
-            }
-            className="h-full transition hover:border-primary/40"
-          />
-        </Link>
-
-        <Link to="/colaboradores" className="block">
-          <MetricCard
-            label="O que mudou recentemente?"
-            icon={drops.length > improvements.length ? TrendingDown : TrendingUp}
-            value={drops.length + improvements.length}
-            hint="movimentos"
-            isEmpty={scoredActive.length === 0}
-            emptyMessage="Sem comparativo recente."
-            footer={`${drops.length} queda(s) e ${improvements.length} melhora(s) relevantes.`}
-            trend={
-              drops.length > improvements.length
-                ? { direction: "down", label: "Mais quedas que melhorias", positive: false }
-                : improvements.length > 0
-                  ? { direction: "up", label: "Evolução positiva", positive: true }
-                  : { direction: "flat", label: "Sem mudança relevante" }
-            }
-            className="h-full transition hover:border-primary/40"
-          />
-        </Link>
+        <TodayActionPanel
+          actionCount={actionCount}
+          openAlertsCount={openAlerts.length}
+          attentionCount={attention.length}
+          withoutScoreCount={withoutRecentScore}
+          actions={topActions}
+          loading={loadingEmployees}
+        />
+        <TeamScorePanel score={teamScore} series={sparklineData} delta={sparkDelta} />
       </div>
 
-      <SectionCard
-        title="Progresso gerado hoje"
-        description="O avanço operacional criado pelas ações concluídas pelo gestor."
-        action={
-          <Button asChild variant="outline" size="sm">
-            <Link to="/alertas">
-              Ver ações
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-        }
-      >
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <MetricCard
-            label="Pendências resolvidas hoje"
-            icon={CheckCircle2}
-            value={progressSummary.resolvedToday}
-            isEmpty={progressSummary.resolvedToday === 0}
-            emptyMessage="Nada resolvido hoje."
-            footer={
-              progressSummary.openActionsCount > 0
-                ? `${progressSummary.openActionsCount} pendência(s) ainda aberta(s).`
-                : "Fila de ações sem pendências abertas."
-            }
-            className="h-full border-status-excellent/30"
-            trend={
-              progressSummary.resolvedToday > 0
-                ? { direction: "up", label: "Execução avançando", positive: true }
-                : { direction: "flat", label: "Aguardando execução" }
-            }
-          />
-          <MetricCard
-            label="Pessoas com ações tratadas"
-            icon={Users}
-            value={progressSummary.peopleWithResolvedActions}
-            isEmpty={progressSummary.peopleWithResolvedActions === 0}
-            emptyMessage="Nenhuma pessoa tratada."
-            footer="Conta pessoas vinculadas a ações concluídas, sem assumir melhora automática."
-          />
-          <MetricCard
-            label="Encaminhamentos gerados"
-            icon={ListChecks}
-            value={progressSummary.generatedFollowUps}
-            isEmpty={progressSummary.generatedFollowUps === 0}
-            emptyMessage="Nenhum encaminhamento."
-            footer="Mostra decisões e próximos passos já tirados da fila."
-          />
-        </div>
-      </SectionCard>
-
-      <SectionCard
-        title="Mudanças desde a última atualização"
-        description="O que mudou no time e pode alterar a prioridade do gestor hoje."
-        action={
-          <Button asChild variant="outline" size="sm">
-            <Link to="/alertas">
-              Resolver mudanças
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-        }
-      >
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <MetricCard
-            label="Melhoraram"
-            icon={TrendingUp}
-            value={improvements.length}
-            isEmpty={improvements.length === 0}
-            emptyMessage="Sem melhora relevante."
-            footer="Score subiu 5 pontos ou mais."
-            trend={{ direction: "up", label: "Evolução positiva", positive: true }}
-          />
-          <MetricCard
-            label="Pioraram"
-            icon={TrendingDown}
-            value={drops.length}
-            isEmpty={drops.length === 0}
-            emptyMessage="Sem queda relevante."
-            footer="Score caiu 5 pontos ou mais."
-            trend={{ direction: "down", label: "Exige atenção", positive: false }}
-          />
-          <MetricCard
-            label="Novos em atenção"
-            icon={AlertTriangle}
-            value={enteredAttention.length}
-            isEmpty={enteredAttention.length === 0}
-            emptyMessage="Ninguém entrou em atenção."
-            footer="Mudança de saudável para atenção, risco ou crítico."
-          />
-          <MetricCard
-            label="Saíram do risco"
-            icon={CheckCircle2}
-            value={leftRisk.length}
-            isEmpty={leftRisk.length === 0}
-            emptyMessage="Ninguém saiu do risco."
-            footer={
-              riskMomentum === "up"
-                ? "Mais quedas/entradas em atenção do que recuperações."
-                : riskMomentum === "down"
-                  ? "Mais recuperações/melhoras do que novos riscos."
-                  : "Entradas e saídas de risco equilibradas."
-            }
-            trend={{
-              direction: riskMomentum === "up" ? "down" : riskMomentum === "down" ? "up" : "flat",
-              label:
-                riskMomentum === "up"
-                  ? "Riscos aumentando"
-                  : riskMomentum === "down"
-                    ? "Riscos diminuindo"
-                    : "Riscos estáveis",
-              positive: riskMomentum !== "up",
-            }}
-          />
-        </div>
-
-        {topRecentChanges.length > 0 && (
-          <div className="mt-5 divide-y divide-border rounded-xl border border-border bg-muted/20">
-            {topRecentChanges.map((change) => (
-              <Link
-                key={change.id}
-                to={change.to}
-                params={change.params}
-                className="flex flex-wrap items-center justify-between gap-3 p-3 transition hover:bg-muted/60"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">{change.title}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{change.reason}</p>
-                </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-              </Link>
-            ))}
-          </div>
-        )}
-      </SectionCard>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+      {/* Pessoas: atenção + destaques */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <SectionCard
-          title="Fila de decisão"
-          description="As ações mais importantes para o gestor começar o dia."
+          title="Pessoas em atenção"
+          description="Clique para abrir o perfil e agir com contexto."
           action={
-            <Button asChild variant="outline" size="sm">
-              <Link to="/alertas">
-                Abrir ações
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/colaboradores">
+                Ver pessoas
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
           }
+          contentClassName="space-y-2"
         >
-          {recommended.length === 0 ? (
+          {attention.length === 0 ? (
             <EmptyState
               icon={CheckCircle2}
-              title="Nada crítico para agir agora"
-              description="Quando surgirem alertas, quedas de performance ou KPIs pendentes, eles aparecerão aqui."
+              title="Nenhum colaborador em atenção"
+              description="A equipe não tem quedas ou scores baixos registrados agora."
             />
           ) : (
-            <ul className="divide-y divide-border">
-              {recommended.slice(0, 5).map((item) => (
-                <li key={item.title} className="py-3 first:pt-0 last:pb-0">
-                  <Link
-                    to={item.to}
-                    className="flex flex-wrap items-start justify-between gap-3 rounded-lg p-2 transition hover:bg-muted/60"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground">{item.title}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{item.reason}</p>
-                    </div>
-                    <span
-                      className={
-                        "rounded-full px-2 py-0.5 text-[11px] font-medium " +
-                        (item.priority === "alta"
-                          ? "bg-status-critical-soft text-status-critical"
-                          : item.priority === "média"
-                            ? "bg-status-attention-soft text-status-attention-foreground"
-                            : "bg-status-info-soft text-status-info")
-                      }
-                    >
-                      Prioridade {item.priority}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            attention.slice(0, 3).map((item) => {
+              const delta =
+                item.previous !== null ? Number(item.current) - Number(item.previous) : null;
+              return (
+                <PersonRow
+                  key={item.employee.id}
+                  name={item.employee.name}
+                  role={item.employee.role}
+                  department={departmentName.get(item.employee.department_id ?? "") ?? null}
+                  avatarUrl={item.employee.avatar_url}
+                  score={item.current}
+                  delta={delta}
+                  to={item.employee.is_mock ? "/alertas" : "/colaboradores/$id"}
+                  params={item.employee.is_mock ? undefined : { id: item.employee.id }}
+                />
+              );
+            })
           )}
         </SectionCard>
 
+        <SectionCard
+          title="Destaques para reconhecer"
+          description="Alto desempenho merece reforço positivo."
+          action={
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/colaboradores">
+                Ver ranking
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          }
+          contentClassName="space-y-2"
+        >
+          {highlights.length === 0 ? (
+            <EmptyState
+              icon={Sparkles}
+              title="Ainda não há destaques"
+              description="Quando colaboradores alcançarem alto desempenho, eles aparecerão aqui."
+            />
+          ) : (
+            highlights.slice(0, 3).map((item) => {
+              const delta =
+                item.previous !== null ? Number(item.current) - Number(item.previous) : null;
+              return (
+                <PersonRow
+                  key={item.employee.id}
+                  name={item.employee.name}
+                  role={item.employee.role}
+                  department={departmentName.get(item.employee.department_id ?? "") ?? null}
+                  avatarUrl={item.employee.avatar_url}
+                  score={item.current}
+                  delta={delta}
+                  to={item.employee.is_mock ? "/alertas" : "/colaboradores/$id"}
+                  params={item.employee.is_mock ? undefined : { id: item.employee.id }}
+                />
+              );
+            })
+          )}
+        </SectionCard>
+      </div>
+
+      {/* Mudanças desde a última atualização (consolidada em 1 seção) */}
+      <SectionCard
+        title="Mudanças desde a última atualização"
+        description="O que mudou no time e pode mover sua prioridade hoje."
+      >
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+          <InlineStat
+            icon={TrendingUp}
+            label="Melhoraram"
+            value={improvements.length}
+            tone="excellent"
+          />
+          <InlineStat icon={TrendingDown} label="Pioraram" value={drops.length} tone="critical" />
+          <InlineStat
+            icon={AlertTriangle}
+            label="Em atenção"
+            value={enteredAttention.length}
+            tone="attention"
+          />
+          <InlineStat
+            icon={CheckCircle2}
+            label="Saíram do risco"
+            value={leftRisk.length}
+            tone="good"
+          />
+        </div>
+      </SectionCard>
+
+      {/* Tendência + Distribuição lado a lado */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_1fr]">
+        <SectionCard
+          title="Tendência da equipe"
+          description="Score médio ao longo do período selecionado."
+          action={
+            <FilterBar<RangeValue>
+              value={range}
+              onChange={setRange}
+              options={[...RANGE_OPTIONS]}
+            />
+          }
+        >
+          {series.length < 2 ? (
+            <EmptyState
+              icon={LineChartIcon}
+              title="Ainda não há histórico suficiente"
+              description="Conforme novas avaliações forem registradas, a evolução aparecerá aqui."
+            />
+          ) : (
+            <div className="h-56 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={series} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 11 }}
+                    stroke="var(--color-muted-foreground)"
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    tick={{ fontSize: 11 }}
+                    stroke="var(--color-muted-foreground)"
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="score"
+                    stroke="var(--color-primary)"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </SectionCard>
+
+        <SectionCard
+          title="Distribuição por desempenho"
+          description="Mapa rápido de saúde por faixa de score."
+          contentClassName="space-y-2"
+        >
+          {scoredActive.length === 0 ? (
+            <EmptyState
+              title="Sem dados para distribuir"
+              description="Registre KPIs para visualizar a faixa de cada pessoa."
+            />
+          ) : (
+            distribution
+              .filter((bucket) => bucket.status !== "neutral" || bucket.count > 0)
+              .map((bucket) => (
+                <DistributionInline
+                  key={bucket.status}
+                  status={bucket.status}
+                  count={bucket.count}
+                  total={activeEmployees.length}
+                />
+              ))
+          )}
+        </SectionCard>
+      </div>
+
+      {/* Alertas + Metas em risco */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <SectionCard
           title="Alertas prioritários"
           description="Sinais abertos por gravidade."
@@ -591,180 +506,370 @@ function ManagementCenterPage() {
             </div>
           )}
         </SectionCard>
-      </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <SectionCard
-          title="Pessoas em atenção"
-          description="Clique no colaborador para abrir o perfil e agir com contexto."
+          title="Progresso de hoje"
+          description="Avanço operacional gerado pelas ações concluídas."
           action={
-            <Button asChild variant="outline" size="sm">
-              <Link to="/colaboradores">
-                Ver pessoas
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/alertas">
+                Ver fila
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
           }
+          contentClassName="space-y-3"
         >
-          {attention.length === 0 ? (
-            <EmptyState
-              icon={CheckCircle2}
-              title="Nenhum colaborador em atenção"
-              description="A equipe não tem quedas ou scores baixos registrados agora."
-            />
-          ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {attention.slice(0, 4).map((item) => {
-                const delta =
-                  item.previous !== null ? Number(item.current) - Number(item.previous) : null;
-
-                return (
-                  <Link
-                    key={item.employee.id}
-                    to={item.employee.is_mock ? "/alertas" : "/colaboradores/$id"}
-                    params={item.employee.is_mock ? undefined : { id: item.employee.id }}
-                    className="block"
-                  >
-                    <EmployeeMiniCard
-                      name={item.employee.name}
-                      role={item.employee.role}
-                      department={departmentName.get(item.employee.department_id ?? "") ?? null}
-                      avatarUrl={item.employee.avatar_url}
-                      score={item.current}
-                      delta={delta}
-                      reason={
-                        delta !== null && delta < 0
-                          ? "Queda no score em relação à última avaliação."
-                          : "Score abaixo da faixa saudável."
-                      }
-                      suggestedAction="Abrir perfil, revisar metas e registrar próximo passo."
-                    />
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </SectionCard>
-
-        <SectionCard
-          title="Destaques para reconhecer"
-          description="Alto desempenho deve gerar reforço positivo, não só observação."
-          action={
-            <Button asChild variant="outline" size="sm">
-              <Link to="/colaboradores">
-                Ver ranking
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          }
-        >
-          {highlights.length === 0 ? (
-            <EmptyState
-              title="Ainda não há destaques"
-              description="Quando colaboradores alcançarem alto desempenho, eles aparecerão aqui."
-            />
-          ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {highlights.slice(0, 4).map((item) => (
-                <Link
-                  key={item.employee.id}
-                  to={item.employee.is_mock ? "/alertas" : "/colaboradores/$id"}
-                  params={item.employee.is_mock ? undefined : { id: item.employee.id }}
-                  className="block"
-                >
-                  <EmployeeMiniCard
-                    name={item.employee.name}
-                    role={item.employee.role}
-                    department={departmentName.get(item.employee.department_id ?? "") ?? null}
-                    avatarUrl={item.employee.avatar_url}
-                    score={item.current}
-                    highlight="Score acima de 90 na última avaliação."
-                  />
-                </Link>
-              ))}
-            </div>
-          )}
+          <ProgressLine
+            icon={CheckCircle2}
+            label="Pendências resolvidas hoje"
+            value={progressSummary.resolvedToday}
+            tone="excellent"
+          />
+          <ProgressLine
+            icon={Users}
+            label="Pessoas com ações tratadas"
+            value={progressSummary.peopleWithResolvedActions}
+            tone="info"
+          />
+          <ProgressLine
+            icon={Target}
+            label="Metas em risco"
+            value={goalsAtRisk}
+            tone={goalsAtRisk > 0 ? "risk" : "neutral"}
+          />
+          <ProgressLine
+            icon={ListChecks}
+            label="Encaminhamentos gerados"
+            value={progressSummary.generatedFollowUps}
+            tone="info"
+          />
         </SectionCard>
       </div>
-
-      <SectionCard
-        title="Tendência da equipe"
-        description="Score médio ao longo do período selecionado."
-        action={
-          <FilterBar<RangeValue> value={range} onChange={setRange} options={[...RANGE_OPTIONS]} />
-        }
-      >
-        {series.length < 2 ? (
-          <EmptyState
-            icon={LineChartIcon}
-            title="Ainda não há histórico suficiente"
-            description="Conforme novas avaliações forem registradas, a evolução aparecerá aqui."
-          />
-        ) : (
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={series} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 11 }}
-                  stroke="var(--color-muted-foreground)"
-                />
-                <YAxis
-                  domain={[0, 100]}
-                  tick={{ fontSize: 11 }}
-                  stroke="var(--color-muted-foreground)"
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--color-card)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="score"
-                  stroke="var(--color-primary)"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </SectionCard>
-
-      <SectionCard
-        title="Distribuição do efetivo por desempenho"
-        description="Mapa rápido de saúde do time por faixa de score."
-      >
-        {scoredActive.length === 0 ? (
-          <EmptyState
-            title="Ainda não há dados suficientes para esta distribuição"
-            description="Cadastre colaboradores e registre KPIs para visualizar a faixa de cada pessoa."
-          />
-        ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {distribution
-              .filter((bucket) => bucket.status !== "neutral" || bucket.count > 0)
-              .map((bucket) => (
-                <DistributionRow
-                  key={bucket.status}
-                  status={bucket.status}
-                  count={bucket.count}
-                  total={activeEmployees.length}
-                />
-              ))}
-          </div>
-        )}
-      </SectionCard>
     </div>
   );
 }
 
-function DistributionRow({
+/* ============ Subcomponents (puros, apresentacionais) ============ */
+
+function TeamStatusStrip({
+  buckets,
+  withoutScore,
+  total,
+}: {
+  buckets: Map<ScoreStatus, number>;
+  withoutScore: number;
+  total: number;
+}) {
+  if (total === 0) return null;
+  const items: { status: ScoreStatus | "missing"; label: string; count: number }[] = [
+    { status: "excellent", label: "Excelente", count: buckets.get("excellent") ?? 0 },
+    { status: "good", label: "Bom", count: buckets.get("good") ?? 0 },
+    { status: "attention", label: "Atenção", count: buckets.get("attention") ?? 0 },
+    { status: "risk", label: "Risco", count: buckets.get("risk") ?? 0 },
+    { status: "critical", label: "Crítico", count: buckets.get("critical") ?? 0 },
+    { status: "missing", label: "Sem KPI", count: withoutScore },
+  ];
+
+  return (
+    <div className="flex flex-wrap items-stretch gap-x-6 gap-y-3 rounded-xl border border-border bg-card px-5 py-3 shadow-[var(--shadow-soft)]">
+      {items.map((item, idx) => {
+        const tone: ScoreStatus =
+          item.status === "missing" ? "neutral" : (item.status as ScoreStatus);
+        return (
+          <div
+            key={item.label}
+            className={cn(
+              "flex items-center gap-2.5",
+              idx > 0 && "border-l border-border/70 pl-6 first:border-0 first:pl-0",
+            )}
+          >
+            <span
+              className={cn(
+                "h-2 w-2 rounded-full",
+                tone === "excellent" && "bg-status-excellent",
+                tone === "good" && "bg-status-good",
+                tone === "attention" && "bg-status-attention",
+                tone === "risk" && "bg-status-risk",
+                tone === "critical" && "bg-status-critical",
+                tone === "neutral" && "bg-status-neutral",
+              )}
+            />
+            <span className="text-xs text-muted-foreground">{item.label}</span>
+            <span className="text-sm font-semibold tabular-nums text-foreground">{item.count}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function TodayActionPanel({
+  actionCount,
+  openAlertsCount,
+  attentionCount,
+  withoutScoreCount,
+  actions,
+  loading,
+}: {
+  actionCount: number;
+  openAlertsCount: number;
+  attentionCount: number;
+  withoutScoreCount: number;
+  actions: {
+    id: string;
+    title: string;
+    reason: string;
+    priority: "alta" | "média" | "baixa";
+    to: "/colaboradores/$id" | "/colaboradores" | "/alertas";
+    params?: { id: string };
+  }[];
+  loading: boolean;
+}) {
+  const isUrgent = actionCount > 0;
+  return (
+    <section
+      className={cn(
+        "relative col-span-1 flex flex-col gap-4 overflow-hidden rounded-xl border bg-card p-5 shadow-[var(--shadow-elevated)] lg:col-span-2",
+        isUrgent ? "border-status-critical/40" : "border-border",
+      )}
+    >
+      <div
+        className={cn(
+          "absolute inset-y-0 left-0 w-1",
+          isUrgent ? "bg-status-critical" : "bg-status-good",
+        )}
+      />
+      <div className="flex flex-wrap items-start justify-between gap-3 pl-2">
+        <div className="min-w-0">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            O que preciso fazer hoje
+          </p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-5xl font-semibold tracking-tight tabular-nums text-foreground">
+              {actionCount}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              ação{actionCount === 1 ? "" : "ões"}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {openAlertsCount} alerta(s) · {attentionCount} pessoa(s) em atenção ·{" "}
+            {withoutScoreCount} sem KPI recente
+          </p>
+        </div>
+        <Button asChild size="sm">
+          <Link to="/alertas">
+            <ListChecks className="h-4 w-4" />
+            Abrir fila
+          </Link>
+        </Button>
+      </div>
+
+      <div className="pl-2">
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Carregando prioridades...</p>
+        ) : actions.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Nada crítico para agir agora. Aproveite para reconhecer destaques.
+          </p>
+        ) : (
+          <ul className="divide-y divide-border rounded-lg border border-border/70 bg-background/40">
+            {actions.map((action) => {
+              const dotTone =
+                action.priority === "alta"
+                  ? "bg-status-critical"
+                  : action.priority === "média"
+                    ? "bg-status-attention"
+                    : "bg-status-info";
+              return (
+                <li key={action.id}>
+                  <Link
+                    to={action.to}
+                    params={action.params}
+                    className="flex items-center gap-3 px-3 py-2.5 transition hover:bg-muted/40"
+                  >
+                    <span className={cn("h-2 w-2 shrink-0 rounded-full", dotTone)} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">{action.title}</p>
+                      <p className="truncate text-xs text-muted-foreground">{action.reason}</p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function TeamScorePanel({
+  score,
+  series,
+  delta,
+}: {
+  score: number | null;
+  series: { date: string; score: number }[];
+  delta: number | null;
+}) {
+  const hasScore = score !== null && !Number.isNaN(score);
+  const status = scoreToStatus(score);
+  return (
+    <section className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 shadow-[var(--shadow-soft)]">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Score médio da equipe
+        </p>
+        {hasScore && <StatusBadge tone={status}>{scoreLabel(status)}</StatusBadge>}
+      </div>
+      {hasScore ? (
+        <>
+          <div className="flex items-baseline gap-2">
+            <span className="text-4xl font-semibold tabular-nums tracking-tight text-foreground">
+              {Math.round(score!)}
+            </span>
+            <span className="text-sm text-muted-foreground">/ 100</span>
+            {delta !== null && Math.abs(delta) >= 0.1 && (
+              <span
+                className={cn(
+                  "ml-auto inline-flex items-center gap-0.5 text-xs font-medium",
+                  delta > 0 ? "text-status-excellent" : "text-status-critical",
+                )}
+              >
+                {delta > 0 ? (
+                  <TrendingUp className="h-3 w-3" />
+                ) : (
+                  <TrendingDown className="h-3 w-3" />
+                )}
+                {delta > 0 ? "+" : ""}
+                {delta.toFixed(1)} pts
+              </span>
+            )}
+          </div>
+          <div className="h-16 w-full">
+            {series.length >= 2 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={series} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+                  <Line
+                    type="monotone"
+                    dataKey="score"
+                    stroke="var(--color-primary)"
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="pt-3 text-xs text-muted-foreground">
+                Ainda sem histórico suficiente para tendência.
+              </p>
+            )}
+          </div>
+        </>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Ainda não há avaliações suficientes para calcular o score médio.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function InlineStat({
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: typeof TrendingUp;
+  label: string;
+  value: number;
+  tone: ScoreStatus;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <div
+        className={cn(
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+          tone === "excellent" && "bg-status-excellent-soft text-status-excellent",
+          tone === "good" && "bg-status-good-soft text-status-good",
+          tone === "attention" && "bg-status-attention-soft text-status-attention-foreground",
+          tone === "risk" && "bg-status-risk-soft text-status-risk",
+          tone === "critical" && "bg-status-critical-soft text-status-critical",
+          tone === "neutral" && "bg-muted text-muted-foreground",
+        )}
+      >
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-lg font-semibold tabular-nums text-foreground">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function PersonRow({
+  name,
+  role,
+  department,
+  avatarUrl,
+  score,
+  delta,
+  to,
+  params,
+}: {
+  name: string;
+  role?: string | null;
+  department?: string | null;
+  avatarUrl?: string | null;
+  score: number;
+  delta: number | null;
+  to: "/colaboradores/$id" | "/alertas";
+  params?: { id: string };
+}) {
+  const status = scoreToStatus(score);
+  return (
+    <Link
+      to={to}
+      params={params}
+      className="flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-muted/40"
+    >
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
+        {avatarUrl ? (
+          <img src={avatarUrl} alt={name} className="h-9 w-9 rounded-full object-cover" />
+        ) : (
+          initials(name)
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-foreground">{name}</p>
+        <p className="truncate text-xs text-muted-foreground">
+          {[role, department].filter(Boolean).join(" · ") || "—"}
+        </p>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        {delta !== null && Math.abs(delta) >= 0.1 && (
+          <span
+            className={cn(
+              "text-xs font-medium tabular-nums",
+              delta > 0 ? "text-status-excellent" : "text-status-critical",
+            )}
+          >
+            {delta > 0 ? "+" : ""}
+            {delta.toFixed(1)}
+          </span>
+        )}
+        <StatusBadge tone={status}>{Math.round(score)}</StatusBadge>
+      </div>
+    </Link>
+  );
+}
+
+function DistributionInline({
   status,
   count,
   total,
@@ -776,22 +881,60 @@ function DistributionRow({
   const label = status === "neutral" ? "Sem avaliação" : scoreLabel(status);
   const range = SCORE_RANGES.find((item) => item.status === status);
   const percentage = total > 0 ? (count / total) * 100 : 0;
-
+  const tone = scoreToStatus(range ? (range.min + range.max) / 2 : null);
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        <span className="text-sm tabular-nums text-muted-foreground">{count}</span>
+    <div>
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-medium text-foreground">{label}</span>
+        <span className="tabular-nums text-muted-foreground">
+          {count} · {Math.round(percentage)}%
+        </span>
       </div>
-      <p className="mt-0.5 text-xs text-muted-foreground">
-        {range ? `Score ${range.min}-${range.max}` : "Sem score registrado"}
-      </p>
-      <div className="mt-3">
-        <ProgressBar
-          value={percentage}
-          tone={scoreToStatus(range ? (range.min + range.max) / 2 : null)}
-        />
+      <div className="mt-1.5">
+        <ProgressBar value={percentage} tone={tone} />
       </div>
     </div>
   );
+}
+
+function ProgressLine({
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: typeof TrendingUp;
+  label: string;
+  value: number;
+  tone: ScoreStatus | "info";
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-background/40 px-3 py-2">
+      <div
+        className={cn(
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-md",
+          tone === "excellent" && "bg-status-excellent-soft text-status-excellent",
+          tone === "good" && "bg-status-good-soft text-status-good",
+          tone === "attention" && "bg-status-attention-soft text-status-attention-foreground",
+          tone === "risk" && "bg-status-risk-soft text-status-risk",
+          tone === "critical" && "bg-status-critical-soft text-status-critical",
+          tone === "info" && "bg-status-info-soft text-status-info",
+          tone === "neutral" && "bg-muted text-muted-foreground",
+        )}
+      >
+        <Icon className="h-4 w-4" />
+      </div>
+      <p className="min-w-0 flex-1 text-sm text-foreground">{label}</p>
+      <p className="text-lg font-semibold tabular-nums text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function initials(name: string): string {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0]?.toUpperCase() ?? "")
+    .join("");
 }
