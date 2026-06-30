@@ -9,9 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as FuncionarioRouteImport } from './routes/funcionario'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as FuncionarioIndexRouteImport } from './routes/funcionario.index'
 import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as FuncionarioPerfilRouteImport } from './routes/funcionario.perfil'
 import { Route as AppReunioesRouteImport } from './routes/_app.reunioes'
 import { Route as AppMetasRouteImport } from './routes/_app.metas'
 import { Route as AppInsightsRouteImport } from './routes/_app.insights'
@@ -25,6 +28,11 @@ import { Route as AppAlertasRouteImport } from './routes/_app.alertas'
 import { Route as AppConfiguracoesEmBreveRouteImport } from './routes/_app.configuracoes.em-breve'
 import { Route as AppColaboradoresIdRouteImport } from './routes/_app.colaboradores.$id'
 
+const FuncionarioRoute = FuncionarioRouteImport.update({
+  id: '/funcionario',
+  path: '/funcionario',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -34,10 +42,20 @@ const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FuncionarioIndexRoute = FuncionarioIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => FuncionarioRoute,
+} as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
+} as any)
+const FuncionarioPerfilRoute = FuncionarioPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => FuncionarioRoute,
 } as any)
 const AppReunioesRoute = AppReunioesRouteImport.update({
   id: '/reunioes',
@@ -103,6 +121,7 @@ const AppColaboradoresIdRoute = AppColaboradoresIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/auth': typeof AuthRoute
+  '/funcionario': typeof FuncionarioRouteWithChildren
   '/alertas': typeof AppAlertasRoute
   '/analises': typeof AppAnalisesRoute
   '/avaliacoes': typeof AppAvaliacoesRoute
@@ -113,6 +132,8 @@ export interface FileRoutesByFullPath {
   '/insights': typeof AppInsightsRoute
   '/metas': typeof AppMetasRoute
   '/reunioes': typeof AppReunioesRoute
+  '/funcionario/perfil': typeof FuncionarioPerfilRoute
+  '/funcionario/': typeof FuncionarioIndexRoute
   '/colaboradores/$id': typeof AppColaboradoresIdRoute
   '/configuracoes/em-breve': typeof AppConfiguracoesEmBreveRoute
 }
@@ -128,7 +149,9 @@ export interface FileRoutesByTo {
   '/insights': typeof AppInsightsRoute
   '/metas': typeof AppMetasRoute
   '/reunioes': typeof AppReunioesRoute
+  '/funcionario/perfil': typeof FuncionarioPerfilRoute
   '/': typeof AppIndexRoute
+  '/funcionario': typeof FuncionarioIndexRoute
   '/colaboradores/$id': typeof AppColaboradoresIdRoute
   '/configuracoes/em-breve': typeof AppConfiguracoesEmBreveRoute
 }
@@ -136,6 +159,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/funcionario': typeof FuncionarioRouteWithChildren
   '/_app/alertas': typeof AppAlertasRoute
   '/_app/analises': typeof AppAnalisesRoute
   '/_app/avaliacoes': typeof AppAvaliacoesRoute
@@ -146,7 +170,9 @@ export interface FileRoutesById {
   '/_app/insights': typeof AppInsightsRoute
   '/_app/metas': typeof AppMetasRoute
   '/_app/reunioes': typeof AppReunioesRoute
+  '/funcionario/perfil': typeof FuncionarioPerfilRoute
   '/_app/': typeof AppIndexRoute
+  '/funcionario/': typeof FuncionarioIndexRoute
   '/_app/colaboradores/$id': typeof AppColaboradoresIdRoute
   '/_app/configuracoes/em-breve': typeof AppConfiguracoesEmBreveRoute
 }
@@ -155,6 +181,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/funcionario'
     | '/alertas'
     | '/analises'
     | '/avaliacoes'
@@ -165,6 +192,8 @@ export interface FileRouteTypes {
     | '/insights'
     | '/metas'
     | '/reunioes'
+    | '/funcionario/perfil'
+    | '/funcionario/'
     | '/colaboradores/$id'
     | '/configuracoes/em-breve'
   fileRoutesByTo: FileRoutesByTo
@@ -180,13 +209,16 @@ export interface FileRouteTypes {
     | '/insights'
     | '/metas'
     | '/reunioes'
+    | '/funcionario/perfil'
     | '/'
+    | '/funcionario'
     | '/colaboradores/$id'
     | '/configuracoes/em-breve'
   id:
     | '__root__'
     | '/_app'
     | '/auth'
+    | '/funcionario'
     | '/_app/alertas'
     | '/_app/analises'
     | '/_app/avaliacoes'
@@ -197,7 +229,9 @@ export interface FileRouteTypes {
     | '/_app/insights'
     | '/_app/metas'
     | '/_app/reunioes'
+    | '/funcionario/perfil'
     | '/_app/'
+    | '/funcionario/'
     | '/_app/colaboradores/$id'
     | '/_app/configuracoes/em-breve'
   fileRoutesById: FileRoutesById
@@ -205,10 +239,18 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
+  FuncionarioRoute: typeof FuncionarioRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/funcionario': {
+      id: '/funcionario'
+      path: '/funcionario'
+      fullPath: '/funcionario'
+      preLoaderRoute: typeof FuncionarioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -223,12 +265,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/funcionario/': {
+      id: '/funcionario/'
+      path: '/'
+      fullPath: '/funcionario/'
+      preLoaderRoute: typeof FuncionarioIndexRouteImport
+      parentRoute: typeof FuncionarioRoute
+    }
     '/_app/': {
       id: '/_app/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/funcionario/perfil': {
+      id: '/funcionario/perfil'
+      path: '/perfil'
+      fullPath: '/funcionario/perfil'
+      preLoaderRoute: typeof FuncionarioPerfilRouteImport
+      parentRoute: typeof FuncionarioRoute
     }
     '/_app/reunioes': {
       id: '/_app/reunioes'
@@ -369,9 +425,24 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface FuncionarioRouteChildren {
+  FuncionarioPerfilRoute: typeof FuncionarioPerfilRoute
+  FuncionarioIndexRoute: typeof FuncionarioIndexRoute
+}
+
+const FuncionarioRouteChildren: FuncionarioRouteChildren = {
+  FuncionarioPerfilRoute: FuncionarioPerfilRoute,
+  FuncionarioIndexRoute: FuncionarioIndexRoute,
+}
+
+const FuncionarioRouteWithChildren = FuncionarioRoute._addFileChildren(
+  FuncionarioRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
+  FuncionarioRoute: FuncionarioRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

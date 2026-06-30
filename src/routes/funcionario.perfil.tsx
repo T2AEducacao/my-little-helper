@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/_employee/perfil")({
+export const Route = createFileRoute("/funcionario/perfil")({
   component: EmployeeProfilePage,
 });
 

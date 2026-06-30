@@ -14,7 +14,7 @@ import { EmptyState } from "@/components/php/EmptyState";
 import { StatusBadge } from "@/components/php/StatusBadge";
 import { useMyEmployeeGoals, type GoalRow } from "@/lib/goals-data";
 
-export const Route = createFileRoute("/_employee/")({
+export const Route = createFileRoute("/funcionario/")({
   component: EmployeeGoalsPage,
 });
 

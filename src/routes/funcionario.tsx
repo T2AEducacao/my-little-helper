@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Target, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_employee")({
+export const Route = createFileRoute("/funcionario")({
   ssr: false,
   component: EmployeeLayout,
 });
