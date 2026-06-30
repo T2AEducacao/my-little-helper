@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Link } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   Search,
   Plus,
@@ -17,11 +17,11 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Minus,
-  UserCheck,
-  Trophy,
-  AlertTriangle,
+  SlidersHorizontal,
+  X,
+  LayoutGrid,
+  List,
 } from "lucide-react";
-import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -47,6 +47,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -61,8 +62,8 @@ import { PageHeader } from "@/components/php/PageHeader";
 import { EmptyState } from "@/components/php/EmptyState";
 import { StatusBadge } from "@/components/php/StatusBadge";
 import { EmployeeFormDialog } from "@/components/php/EmployeeFormDialog";
-import { MetricCard } from "@/components/php/MetricCard";
 import { scoreToStatus, scoreLabel } from "@/components/php/types";
+import { cn } from "@/lib/utils";
 import {
   useEmployees,
   useDepartments,
@@ -92,6 +93,16 @@ export const Route = createFileRoute("/_app/colaboradores")({
 
 type ScoreFilter = "all" | "excellent" | "good" | "attention" | "risk" | "critical" | "none";
 
+const SCORE_CHIPS: { value: ScoreFilter; label: string; tone: "excellent" | "good" | "attention" | "risk" | "critical" | "neutral" | "all" }[] = [
+  { value: "all", label: "Todos", tone: "all" },
+  { value: "excellent", label: "Alto", tone: "excellent" },
+  { value: "good", label: "Bom", tone: "good" },
+  { value: "attention", label: "Atenção", tone: "attention" },
+  { value: "risk", label: "Risco", tone: "risk" },
+  { value: "critical", label: "Crítico", tone: "critical" },
+  { value: "none", label: "Sem score", tone: "neutral" },
+];
+
 function ColaboradoresPage() {
   const { data: employees = [], isLoading } = useEmployees();
   const { data: departments = [] } = useDepartments();
@@ -110,28 +121,22 @@ function ColaboradoresPage() {
   const [scoreFilter, setScoreFilter] = useState<ScoreFilter>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [view, setView] = useState<"table" | "cards">("table");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const latest = useMemo(() => latestSnapshotsByEmployee(snapshots), [snapshots]);
   const deptById = useMemo(() => new Map(departments.map((d) => [d.id, d.name])), [departments]);
   const empById = useMemo(() => new Map(employees.map((e) => [e.id, e.name])), [employees]);
 
-  const performanceSummary = useMemo(() => {
-    const active = employees.filter((employee) => employee.status === "active");
-    const scores = active.map((employee) => latest.get(employee.id)?.current ?? null);
-    const evaluatedScores = scores.filter((score): score is number => score !== null);
-    const averageScore =
-      evaluatedScores.length > 0
-        ? evaluatedScores.reduce((sum, score) => sum + score, 0) / evaluatedScores.length
-        : null;
-
-    return {
-      activeCount: active.length,
-      evaluatedCount: evaluatedScores.length,
-      averageScore,
-      highPerformanceCount: evaluatedScores.filter((score) => score >= 90).length,
-      attentionCount: evaluatedScores.filter((score) => score < 75).length,
-      withoutScoreCount: scores.length - evaluatedScores.length,
-    };
+  const buckets = useMemo(() => {
+    const active = employees.filter((e) => e.status === "active");
+    const counts = { excellent: 0, good: 0, attention: 0, risk: 0, critical: 0, none: 0 };
+    for (const e of active) {
+      const score = latest.get(e.id)?.current ?? null;
+      const status = scoreToStatus(score);
+      if (status === "neutral") counts.none++;
+      else counts[status]++;
+    }
+    return { active: active.length, total: employees.length, ...counts };
   }, [employees, latest]);
 
   const roleOptions = useMemo(() => {
@@ -182,14 +187,42 @@ function ColaboradoresPage() {
     deptById,
   ]);
 
+  const activeFilters: { key: string; label: string; clear: () => void }[] = [];
+  if (deptFilter !== "all") {
+    activeFilters.push({
+      key: "dept",
+      label: `Área: ${deptById.get(deptFilter) ?? "—"}`,
+      clear: () => setDeptFilter("all"),
+    });
+  }
+  if (managerFilter !== "all") {
+    activeFilters.push({
+      key: "manager",
+      label: `Gestor: ${empById.get(managerFilter) ?? "—"}`,
+      clear: () => setManagerFilter("all"),
+    });
+  }
+  if (roleFilter !== "all") {
+    activeFilters.push({ key: "role", label: `Cargo: ${roleFilter}`, clear: () => setRoleFilter("all") });
+  }
+  if (seniorityFilter !== "all") {
+    activeFilters.push({
+      key: "sen",
+      label: `Senioridade: ${seniorityFilter}`,
+      clear: () => setSeniorityFilter("all"),
+    });
+  }
+  if (statusFilter !== "all") {
+    activeFilters.push({
+      key: "status",
+      label: `Status: ${STATUS_LABEL[statusFilter as EmployeeStatus] ?? statusFilter}`,
+      clear: () => setStatusFilter("all"),
+    });
+  }
+
+  const popoverFilterCount = activeFilters.length;
   const hasAnyFilter =
-    !!search ||
-    deptFilter !== "all" ||
-    managerFilter !== "all" ||
-    roleFilter !== "all" ||
-    seniorityFilter !== "all" ||
-    statusFilter !== "all" ||
-    scoreFilter !== "all";
+    !!search || popoverFilterCount > 0 || scoreFilter !== "all";
 
   function clearFilters() {
     setSearch("");
@@ -214,17 +247,17 @@ function ColaboradoresPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         title="Colaboradores"
-        description="Gerencie o efetivo, acompanhe KPIs individuais e identifique rapidamente destaques e pontos de atenção."
+        description="Encontre rapidamente quem está em destaque, quem precisa de atenção e quem ainda não foi avaliado."
         actions={
           <>
             <Button variant="outline" size="sm" onClick={() => toast("Disponível em breve.")}>
-              <Upload className="mr-1.5 h-4 w-4" /> Importar
+              <Upload className="h-4 w-4" /> Importar
             </Button>
             <Button variant="outline" size="sm" onClick={() => toast("Disponível em breve.")}>
-              <Download className="mr-1.5 h-4 w-4" /> Exportar
+              <Download className="h-4 w-4" /> Exportar
             </Button>
             <Button
               size="sm"
@@ -233,148 +266,223 @@ function ColaboradoresPage() {
                 setOpenForm(true);
               }}
             >
-              <Plus className="mr-1.5 h-4 w-4" /> Novo colaborador
+              <Plus className="h-4 w-4" /> Novo colaborador
             </Button>
           </>
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label="Efetivo ativo"
-          icon={UserCheck}
-          value={performanceSummary.activeCount}
-          isEmpty={!isLoading && employees.length === 0}
-          emptyMessage="Nenhum colaborador ativo ainda."
-          footer={`${employees.length} colaborador(es) no total.`}
-        />
-        <MetricCard
-          label="Score médio"
-          icon={ClipboardCheck}
-          value={
-            performanceSummary.averageScore === null
-              ? "—"
-              : Math.round(performanceSummary.averageScore)
-          }
-          isEmpty={!isLoading && performanceSummary.evaluatedCount === 0}
-          emptyMessage="Sem KPIs registrados ainda."
-          footer={`${performanceSummary.evaluatedCount} colaborador(es) com KPI recente.`}
-        />
-        <MetricCard
-          label="Alto desempenho"
-          icon={Trophy}
-          value={performanceSummary.highPerformanceCount}
-          isEmpty={!isLoading && performanceSummary.evaluatedCount === 0}
-          emptyMessage="Sem dados suficientes."
-          footer="Score igual ou acima de 90."
-        />
-        <MetricCard
-          label="Precisam de atenção"
-          icon={AlertTriangle}
-          value={performanceSummary.attentionCount}
-          isEmpty={!isLoading && performanceSummary.evaluatedCount === 0}
-          emptyMessage="Sem dados suficientes."
-          footer={
-            performanceSummary.withoutScoreCount > 0
-              ? `${performanceSummary.withoutScoreCount} ativo(s) ainda sem KPI.`
-              : "Score abaixo de 75."
-          }
-        />
+      {/* Compact status strip */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
+        <StatStripItem label="Ativos" value={buckets.active} hint={`${buckets.total} total`} />
+        <StatStripDot tone="excellent" label="Alto" value={buckets.excellent} />
+        <StatStripDot tone="good" label="Bom" value={buckets.good} />
+        <StatStripDot tone="attention" label="Atenção" value={buckets.attention} />
+        <StatStripDot tone="risk" label="Risco" value={buckets.risk} />
+        <StatStripDot tone="critical" label="Crítico" value={buckets.critical} />
+        <StatStripDot tone="neutral" label="Sem score" value={buckets.none} />
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="relative flex-1 min-w-0">
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar por nome, e-mail, cargo ou área..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
+              className="h-9 pl-9"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant={view === "table" ? "default" : "outline"}
-              onClick={() => setView("table")}
-            >
-              Tabela
-            </Button>
-            <Button
-              size="sm"
-              variant={view === "cards" ? "default" : "outline"}
-              onClick={() => setView("cards")}
-            >
-              Cards
-            </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Filtros
+                  {popoverFilterCount > 0 && (
+                    <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold tabular-nums text-primary-foreground">
+                      {popoverFilterCount}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 p-3">
+                <div className="grid grid-cols-1 gap-3">
+                  <FilterField label="Área">
+                    <FilterSelect
+                      value={deptFilter}
+                      onChange={setDeptFilter}
+                      placeholder="Todas as áreas"
+                      options={[
+                        { value: "all", label: "Todas as áreas" },
+                        ...departments.map((d) => ({ value: d.id, label: d.name })),
+                      ]}
+                    />
+                  </FilterField>
+                  <FilterField label="Gestor">
+                    <FilterSelect
+                      value={managerFilter}
+                      onChange={setManagerFilter}
+                      placeholder="Todos os gestores"
+                      options={[
+                        { value: "all", label: "Todos os gestores" },
+                        ...managerOptions.map((m) => ({ value: m.id, label: m.name })),
+                      ]}
+                    />
+                  </FilterField>
+                  <FilterField label="Cargo">
+                    <FilterSelect
+                      value={roleFilter}
+                      onChange={setRoleFilter}
+                      placeholder="Todos os cargos"
+                      options={[
+                        { value: "all", label: "Todos os cargos" },
+                        ...roleOptions.map((r) => ({ value: r, label: r })),
+                      ]}
+                    />
+                  </FilterField>
+                  <FilterField label="Senioridade">
+                    <FilterSelect
+                      value={seniorityFilter}
+                      onChange={setSeniorityFilter}
+                      placeholder="Todas senioridades"
+                      options={[
+                        { value: "all", label: "Todas senioridades" },
+                        ...SENIORITY_OPTIONS.map((s) => ({ value: s, label: s })),
+                      ]}
+                    />
+                  </FilterField>
+                  <FilterField label="Status">
+                    <FilterSelect
+                      value={statusFilter}
+                      onChange={setStatusFilter}
+                      placeholder="Todos os status"
+                      options={[
+                        { value: "all", label: "Todos os status" },
+                        ...(Object.keys(STATUS_LABEL) as EmployeeStatus[]).map((s) => ({
+                          value: s,
+                          label: STATUS_LABEL[s],
+                        })),
+                      ]}
+                    />
+                  </FilterField>
+                </div>
+                <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={clearFilters}
+                    disabled={!hasAnyFilter}
+                  >
+                    Limpar tudo
+                  </Button>
+                  <Button size="sm" className="h-8 text-xs" onClick={() => setFiltersOpen(false)}>
+                    Aplicar
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <div className="inline-flex h-9 items-center rounded-md border border-border bg-background p-0.5">
+              <button
+                type="button"
+                onClick={() => setView("table")}
+                className={cn(
+                  "inline-flex h-8 items-center gap-1.5 rounded-sm px-2 text-xs font-medium transition",
+                  view === "table"
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+                title="Tabela"
+              >
+                <List className="h-3.5 w-3.5" />
+                Tabela
+              </button>
+              <button
+                type="button"
+                onClick={() => setView("cards")}
+                className={cn(
+                  "inline-flex h-8 items-center gap-1.5 rounded-sm px-2 text-xs font-medium transition",
+                  view === "cards"
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+                title="Cards"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Cards
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-6">
-          <FilterSelect
-            value={deptFilter}
-            onChange={setDeptFilter}
-            placeholder="Área"
-            options={[
-              { value: "all", label: "Todas as áreas" },
-              ...departments.map((d) => ({ value: d.id, label: d.name })),
-            ]}
-          />
-          <FilterSelect
-            value={managerFilter}
-            onChange={setManagerFilter}
-            placeholder="Gestor"
-            options={[
-              { value: "all", label: "Todos os gestores" },
-              ...managerOptions.map((m) => ({ value: m.id, label: m.name })),
-            ]}
-          />
-          <FilterSelect
-            value={roleFilter}
-            onChange={setRoleFilter}
-            placeholder="Cargo"
-            options={[
-              { value: "all", label: "Todos os cargos" },
-              ...roleOptions.map((r) => ({ value: r, label: r })),
-            ]}
-          />
-          <FilterSelect
-            value={seniorityFilter}
-            onChange={setSeniorityFilter}
-            placeholder="Senioridade"
-            options={[
-              { value: "all", label: "Todas senioridades" },
-              ...SENIORITY_OPTIONS.map((s) => ({ value: s, label: s })),
-            ]}
-          />
-          <FilterSelect
-            value={statusFilter}
-            onChange={setStatusFilter}
-            placeholder="Status"
-            options={[
-              { value: "all", label: "Todos os status" },
-              ...(Object.keys(STATUS_LABEL) as EmployeeStatus[]).map((s) => ({
-                value: s,
-                label: STATUS_LABEL[s],
-              })),
-            ]}
-          />
-          <FilterSelect
-            value={scoreFilter}
-            onChange={(v) => setScoreFilter(v as ScoreFilter)}
-            placeholder="Faixa de desempenho"
-            options={[
-              { value: "all", label: "Todos os scores" },
-              { value: "excellent", label: "Alto desempenho (90-100)" },
-              { value: "good", label: "Bom (75-89)" },
-              { value: "attention", label: "Em atenção (60-74)" },
-              { value: "risk", label: "Em risco (40-59)" },
-              { value: "critical", label: "Crítico (<40)" },
-              { value: "none", label: "Sem score" },
-            ]}
-          />
+        {/* Score chips */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Desempenho
+          </span>
+          {SCORE_CHIPS.map((chip) => {
+            const active = scoreFilter === chip.value;
+            return (
+              <button
+                key={chip.value}
+                type="button"
+                onClick={() => setScoreFilter(chip.value)}
+                className={cn(
+                  "inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition",
+                  active
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {chip.tone !== "all" && (
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      chip.tone === "excellent" && "bg-status-excellent",
+                      chip.tone === "good" && "bg-status-good",
+                      chip.tone === "attention" && "bg-status-attention",
+                      chip.tone === "risk" && "bg-status-risk",
+                      chip.tone === "critical" && "bg-status-critical",
+                      chip.tone === "neutral" && "bg-muted-foreground/50",
+                    )}
+                  />
+                )}
+                {chip.label}
+              </button>
+            );
+          })}
         </div>
+
+        {/* Active filters row */}
+        {activeFilters.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 border-t border-border pt-3">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Aplicados
+            </span>
+            {activeFilters.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={f.clear}
+                className="inline-flex h-7 items-center gap-1.5 rounded-full bg-muted px-2.5 text-xs font-medium text-foreground hover:bg-muted/70"
+              >
+                {f.label}
+                <X className="h-3 w-3 text-muted-foreground" />
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="ml-1 text-xs font-medium text-muted-foreground underline-offset-2 hover:underline"
+            >
+              Limpar tudo
+            </button>
+          </div>
+        )}
       </div>
 
       {isLoading ? (
@@ -393,7 +501,7 @@ function ColaboradoresPage() {
                 setOpenForm(true);
               }}
             >
-              <Plus className="mr-1.5 h-4 w-4" /> Cadastrar primeiro colaborador
+              <Plus className="h-4 w-4" /> Cadastrar primeiro colaborador
             </Button>
           }
         />
@@ -413,15 +521,26 @@ function ColaboradoresPage() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Pessoa</TableHead>
-                  <TableHead>Cargo / Senioridade</TableHead>
-                  <TableHead>Área</TableHead>
-                  <TableHead>Gestor</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Score</TableHead>
-                  <TableHead>Tendência</TableHead>
-                  <TableHead className="w-12" />
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Pessoa
+                  </TableHead>
+                  <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Cargo
+                  </TableHead>
+                  <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Área
+                  </TableHead>
+                  <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Gestor
+                  </TableHead>
+                  <TableHead className="h-10 w-[220px] text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Desempenho
+                  </TableHead>
+                  <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Tendência
+                  </TableHead>
+                  <TableHead className="h-10 w-12" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -443,14 +562,17 @@ function ColaboradoresPage() {
               </TableBody>
             </Table>
           </div>
-          {hasAnyFilter && (
-            <div className="border-t border-border px-4 py-2 text-xs text-muted-foreground">
-              Mostrando {filtered.length} de {employees.length} colaboradores ·{" "}
-              <button onClick={clearFilters} className="underline">
+          <div className="flex items-center justify-between border-t border-border px-4 py-2 text-xs text-muted-foreground">
+            <span>
+              Mostrando <span className="font-medium tabular-nums text-foreground">{filtered.length}</span> de{" "}
+              <span className="tabular-nums">{employees.length}</span> colaboradores
+            </span>
+            {hasAnyFilter && (
+              <button onClick={clearFilters} className="underline-offset-2 hover:underline">
                 Limpar filtros
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -460,6 +582,7 @@ function ColaboradoresPage() {
               employee={e}
               deptName={deptById.get(e.department_id ?? "") ?? "—"}
               score={latest.get(e.id)?.current ?? null}
+              previous={latest.get(e.id)?.previous ?? null}
             />
           ))}
         </div>
@@ -483,6 +606,58 @@ function ColaboradoresPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+function StatStripItem({ label, value, hint }: { label: string; value: number; hint?: string }) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <span className="text-xl font-semibold tabular-nums text-foreground">{value}</span>
+      {hint && <span className="text-xs text-muted-foreground">{hint}</span>}
+    </div>
+  );
+}
+
+function StatStripDot({
+  tone,
+  label,
+  value,
+}: {
+  tone: "excellent" | "good" | "attention" | "risk" | "critical" | "neutral";
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span
+        aria-hidden
+        className={cn(
+          "h-2 w-2 rounded-full",
+          tone === "excellent" && "bg-status-excellent",
+          tone === "good" && "bg-status-good",
+          tone === "attention" && "bg-status-attention",
+          tone === "risk" && "bg-status-risk",
+          tone === "critical" && "bg-status-critical",
+          tone === "neutral" && "bg-muted-foreground/40",
+        )}
+      />
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-sm font-semibold tabular-nums text-foreground">{value}</span>
+    </div>
+  );
+}
+
+function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      {children}
+    </label>
   );
 }
 
@@ -513,6 +688,41 @@ function FilterSelect({
   );
 }
 
+function ScoreBar({ score }: { score: number | null }) {
+  if (score === null) {
+    return (
+      <div className="flex items-center gap-2">
+        <div className="h-1.5 w-24 rounded-full bg-muted" />
+        <span className="text-xs text-muted-foreground">Sem score</span>
+      </div>
+    );
+  }
+  const status = scoreToStatus(score);
+  const pct = Math.max(2, Math.min(100, Math.round(score)));
+  return (
+    <div className="flex items-center gap-2.5">
+      <div className="relative h-1.5 w-24 overflow-hidden rounded-full bg-muted">
+        <div
+          className={cn(
+            "absolute inset-y-0 left-0 rounded-full",
+            status === "excellent" && "bg-status-excellent",
+            status === "good" && "bg-status-good",
+            status === "attention" && "bg-status-attention",
+            status === "risk" && "bg-status-risk",
+            status === "critical" && "bg-status-critical",
+            status === "neutral" && "bg-muted-foreground/40",
+          )}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="w-7 text-sm font-semibold tabular-nums text-foreground">
+        {Math.round(score)}
+      </span>
+      <StatusBadge tone={status}>{scoreLabel(status)}</StatusBadge>
+    </div>
+  );
+}
+
 function EmployeeTableRow({
   employee,
   deptName,
@@ -530,51 +740,44 @@ function EmployeeTableRow({
   onEdit: () => void;
   onDeactivate: () => void;
 }) {
-  const status = scoreToStatus(score);
   const diff = score !== null && previous !== null ? score - previous : null;
+  const inactive = employee.status !== "active";
 
   return (
-    <TableRow>
-      <TableCell>
+    <TableRow className={cn(inactive && "opacity-70")}>
+      <TableCell className="py-2.5">
         <Link
           to="/colaboradores/$id"
           params={{ id: employee.id }}
           className="flex items-center gap-3 hover:underline"
         >
-          <Avatar className="h-9 w-9">
+          <Avatar className="h-8 w-8">
             {employee.avatar_url && <AvatarImage src={employee.avatar_url} alt={employee.name} />}
-            <AvatarFallback className="text-xs">{initials(employee.name)}</AvatarFallback>
+            <AvatarFallback className="bg-primary/10 text-[11px] font-medium text-primary">
+              {initials(employee.name)}
+            </AvatarFallback>
           </Avatar>
           <div className="min-w-0">
-            <div className="truncate text-sm font-medium text-foreground">{employee.name}</div>
+            <div className="flex items-center gap-1.5">
+              <span className="truncate text-sm font-medium text-foreground">{employee.name}</span>
+              {inactive && (
+                <StatusBadge tone="neutral">{STATUS_LABEL[employee.status]}</StatusBadge>
+              )}
+            </div>
             <div className="truncate text-xs text-muted-foreground">{employee.email ?? "—"}</div>
           </div>
         </Link>
       </TableCell>
-      <TableCell className="text-sm">
-        <div className="font-medium text-foreground">{employee.role ?? "—"}</div>
+      <TableCell className="py-2.5 text-sm">
+        <div className="text-sm text-foreground">{employee.role ?? "—"}</div>
         <div className="text-xs text-muted-foreground">{employee.seniority ?? "—"}</div>
       </TableCell>
-      <TableCell className="text-sm text-foreground">{deptName}</TableCell>
-      <TableCell className="text-sm text-muted-foreground">{managerName}</TableCell>
-      <TableCell>
-        <StatusBadge tone={employee.status === "active" ? "info" : "neutral"}>
-          {STATUS_LABEL[employee.status]}
-        </StatusBadge>
+      <TableCell className="py-2.5 text-sm text-foreground">{deptName}</TableCell>
+      <TableCell className="py-2.5 text-sm text-muted-foreground">{managerName}</TableCell>
+      <TableCell className="py-2.5">
+        <ScoreBar score={score} />
       </TableCell>
-      <TableCell>
-        {score === null ? (
-          <span className="text-xs text-muted-foreground">Sem score</span>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold tabular-nums text-foreground">
-              {Math.round(score)}
-            </span>
-            <StatusBadge tone={status}>{scoreLabel(status)}</StatusBadge>
-          </div>
-        )}
-      </TableCell>
-      <TableCell>
+      <TableCell className="py-2.5">
         {diff === null ? (
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <Minus className="h-3 w-3" /> —
@@ -593,7 +796,7 @@ function EmployeeTableRow({
           </span>
         )}
       </TableCell>
-      <TableCell>
+      <TableCell className="py-2.5">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -637,22 +840,26 @@ function EmployeeCard({
   employee,
   deptName,
   score,
+  previous,
 }: {
   employee: EmployeeRow;
   deptName: string;
   score: number | null;
+  previous: number | null;
 }) {
-  const status = scoreToStatus(score);
+  const diff = score !== null && previous !== null ? score - previous : null;
   return (
     <Link
       to="/colaboradores/$id"
       params={{ id: employee.id }}
-      className="group rounded-xl border border-border bg-card p-4 shadow-sm transition hover:border-foreground/20 hover:shadow"
+      className="group flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm transition hover:border-foreground/20 hover:shadow"
     >
       <div className="flex items-center gap-3">
-        <Avatar className="h-11 w-11">
+        <Avatar className="h-10 w-10">
           {employee.avatar_url && <AvatarImage src={employee.avatar_url} alt={employee.name} />}
-          <AvatarFallback>{initials(employee.name)}</AvatarFallback>
+          <AvatarFallback className="bg-primary/10 text-xs font-medium text-primary">
+            {initials(employee.name)}
+          </AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-medium text-foreground group-hover:underline">
@@ -660,23 +867,24 @@ function EmployeeCard({
           </div>
           <div className="truncate text-xs text-muted-foreground">{employee.role ?? "—"}</div>
         </div>
+        {employee.status !== "active" && (
+          <StatusBadge tone="neutral">{STATUS_LABEL[employee.status]}</StatusBadge>
+        )}
       </div>
-      <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-        <span className="truncate">{deptName}</span>
-        <StatusBadge tone={employee.status === "active" ? "info" : "neutral"}>
-          {STATUS_LABEL[employee.status]}
-        </StatusBadge>
-      </div>
-      <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
-        <span className="text-xs text-muted-foreground">Score atual</span>
-        {score === null ? (
-          <span className="text-xs text-muted-foreground">Sem score</span>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className="text-base font-semibold tabular-nums text-foreground">
-              {Math.round(score)}
-            </span>
-            <StatusBadge tone={status}>{scoreLabel(status)}</StatusBadge>
+      <div className="text-xs text-muted-foreground">{deptName}</div>
+      <div className="border-t border-border pt-3">
+        <ScoreBar score={score} />
+        {diff !== null && diff !== 0 && (
+          <div className="mt-1.5 text-[11px] text-muted-foreground">
+            {diff > 0 ? (
+              <span className="inline-flex items-center gap-1 text-status-good">
+                <ArrowUpRight className="h-3 w-3" /> +{diff.toFixed(1)} vs. anterior
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-status-risk">
+                <ArrowDownRight className="h-3 w-3" /> {diff.toFixed(1)} vs. anterior
+              </span>
+            )}
           </div>
         )}
       </div>
