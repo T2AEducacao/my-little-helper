@@ -19,7 +19,7 @@ export type EmployeeRow = {
   location: string | null;
   contract_type: string | null;
   behavioral_profile: string | null;
-  profile_id: string | null;
+  profile_id?: string | null;
 };
 
 export type SnapshotRow = {
