@@ -164,10 +164,21 @@ function GoalsPage() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         employees={employeeOptions}
-        onCreate={addGoal}
+        onCreate={(input) =>
+          createGoalMut.mutate({
+            name: input.nome,
+            employee_id: input.funcionario_id,
+            deadline: input.prazo,
+          })
+        }
       />
 
-      <LocalGoalsSection goals={localGoals} onComplete={completeGoal} />
+      <DbGoalsSection
+        goals={dbGoals}
+        employeesById={employeesById}
+        onComplete={(id) => completeGoalMut.mutate(id)}
+      />
+
 
 
       {/* Hero KPIs */}
