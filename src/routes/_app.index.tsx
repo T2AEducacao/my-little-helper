@@ -650,7 +650,7 @@ function TodayActionPanel({
               {actionCount}
             </span>
             <span className="text-sm text-muted-foreground">
-              ação{actionCount === 1 ? "" : "ões"}
+              {actionCount === 1 ? "ação" : "ações"}
             </span>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
