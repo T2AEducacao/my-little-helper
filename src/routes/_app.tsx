@@ -3,6 +3,7 @@ import { AppSidebar } from "@/components/php/AppSidebar";
 import { MobileBottomNav } from "@/components/php/MobileBottomNav";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { lovableCloudAuth } from "@/integrations/lovable/auth";
+import { getCurrentUserRole } from "@/lib/goals-data";
 import { Outlet, createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
