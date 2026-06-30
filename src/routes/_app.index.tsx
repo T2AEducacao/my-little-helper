@@ -18,17 +18,17 @@ import {
   useEmployees,
   useSnapshots,
 } from "@/lib/php-data";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  AlertOctagon,
   AlertTriangle,
+  ArrowRight,
   CheckCircle2,
   LineChart as LineChartIcon,
-  MessageSquare,
+  ListChecks,
   Sparkles,
   Target,
+  TrendingDown,
   TrendingUp,
-  UserPlus,
   Users,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -56,18 +56,18 @@ type RangeValue = (typeof RANGE_OPTIONS)[number]["value"];
 export const Route = createFileRoute("/_app/")({
   head: () => ({
     meta: [
-      { title: "Performance de Efetivo · People Performance Hub" },
+      { title: "Central de Gestão · People Performance Hub" },
       {
         name: "description",
         content:
-          "Acompanhe KPIs, metas, evolução e alertas de desempenho do efetivo com clareza gerencial.",
+          "Priorize ações, acompanhe riscos e tome decisões rápidas sobre a performance do efetivo.",
       },
     ],
   }),
-  component: DashboardPage,
+  component: ManagementCenterPage,
 });
 
-function DashboardPage() {
+function ManagementCenterPage() {
   const { data: employees = [], isLoading: loadingEmployees } = useEmployees();
   const { data: snapshots = [] } = useSnapshots();
   const { data: alerts = [] } = useAlerts();
@@ -107,222 +107,318 @@ function DashboardPage() {
       ? scoredActive.reduce((sum, item) => sum + Number(item.current), 0) / scoredActive.length
       : null;
 
-  const highlights = scoredActive.filter((item) => item.current >= 90);
+  const highlights = scoredActive
+    .filter((item) => item.current >= 90)
+    .sort((a, b) => b.current - a.current);
   const attention = scoredActive
-    .filter((item) => item.current >= 40 && item.current <= 74)
+    .filter((item) => item.current < 75)
     .sort((a, b) => {
       const aDelta = a.current - (a.previous ?? a.current);
       const bDelta = b.current - (b.previous ?? b.current);
       return aDelta - bDelta;
     });
+  const drops = scoredActive.filter(
+    (item) => item.previous !== null && item.current - item.previous <= -5,
+  );
+  const improvements = scoredActive.filter(
+    (item) => item.previous !== null && item.current - item.previous >= 5,
+  );
+  const withoutRecentScore = Math.max(0, activeEmployees.length - scoredActive.length);
 
   const openAlerts = alerts;
   const criticalAlerts = alerts.filter((alert) => alert.severity === "critical").length;
-  const attentionAlerts = alerts.filter((alert) => alert.severity === "attention").length;
   const sortedAlerts = [...openAlerts].sort(
     (a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity],
   );
 
+  const actionCount = openAlerts.length + attention.length + withoutRecentScore;
   const distribution = buildDistribution(employees, latest);
   const series = buildEvolutionSeries(snapshots, Number(range));
 
   const recommended = useMemo(() => {
-    const items: { title: string; reason: string; priority: "alta" | "média" | "baixa" }[] = [];
-    const drops = scoredActive.filter(
-      (item) => item.previous !== null && item.current - item.previous <= -5,
-    );
-
-    if (drops.length > 0) {
-      items.push({
-        title: `Fazer 1:1 com ${drops.length} colaborador(es) com queda de desempenho`,
-        reason: "Quedas recentes podem indicar bloqueios, desalinhamento de metas ou sobrecarga.",
-        priority: "alta",
-      });
-    }
+    const items: {
+      title: string;
+      reason: string;
+      priority: "alta" | "média" | "baixa";
+      to: string;
+    }[] = [];
 
     if (criticalAlerts > 0) {
       items.push({
-        title: `Revisar ${criticalAlerts} alerta(s) crítico(s)`,
-        reason: "Alertas críticos exigem ação rápida do gestor responsável.",
+        title: `Resolver ${criticalAlerts} alerta(s) crítico(s)`,
+        reason: "Há sinais que exigem ação rápida do gestor.",
         priority: "alta",
+        to: "/alertas",
+      });
+    }
+
+    if (drops.length > 0) {
+      items.push({
+        title: `Investigar ${drops.length} queda(s) de desempenho`,
+        reason: "Quedas recentes podem indicar bloqueios, desalinhamento ou sobrecarga.",
+        priority: "alta",
+        to: "/colaboradores",
+      });
+    }
+
+    if (attention.length > 0) {
+      items.push({
+        title: `Acompanhar ${attention.length} colaborador(es) em atenção`,
+        reason: "Priorize conversas objetivas e remoção de bloqueios.",
+        priority: "média",
+        to: "/colaboradores",
       });
     }
 
     if (highlights.length > 0) {
       items.push({
         title: `Reconhecer ${highlights.length} colaborador(es) em alto desempenho`,
-        reason:
-          "Reconhecimento ajuda a manter consistência, engajamento e referência para a equipe.",
+        reason: "Reconhecimento reforça comportamento consistente e referência para a equipe.",
         priority: "média",
+        to: "/colaboradores",
       });
     }
 
-    if (activeEmployees.length > 0 && scoredActive.length < activeEmployees.length) {
+    if (withoutRecentScore > 0) {
       items.push({
-        title: "Registrar KPIs dos colaboradores sem avaliação recente",
-        reason: `${activeEmployees.length - scoredActive.length} colaborador(es) ainda sem snapshot de desempenho.`,
-        priority: "média",
+        title: `Registrar KPI de ${withoutRecentScore} colaborador(es) ativo(s)`,
+        reason: "Sem dados recentes, o gestor perde visibilidade para decidir.",
+        priority: "baixa",
+        to: "/colaboradores",
       });
     }
 
     return items;
-  }, [activeEmployees.length, criticalAlerts, highlights.length, scoredActive]);
-
-  const hasAnyEmployee = employees.length > 0;
+  }, [attention.length, criticalAlerts, drops.length, highlights.length, withoutRecentScore]);
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-8">
       <PageHeader
-        title="Performance de Efetivo"
-        description="Visão gerencial dos colaboradores, KPIs, metas, evolução e riscos por equipe."
+        title="Central de Gestão"
+        description="Abra o dia sabendo onde agir: riscos, pessoas em atenção, destaques e próximos passos."
         actions={
           <>
-            <Button variant="outline" size="sm">
-              <UserPlus className="h-4 w-4" />
-              Novo colaborador
+            <Button asChild variant="outline" size="sm">
+              <Link to="/colaboradores">
+                <Users className="h-4 w-4" />
+                Pessoas
+              </Link>
             </Button>
-            <Button variant="outline" size="sm">
-              <Target className="h-4 w-4" />
-              Registrar KPI
-            </Button>
-            <Button size="sm">
-              <Sparkles className="h-4 w-4" />
-              Gerar insight
+            <Button asChild size="sm">
+              <Link to="/alertas">
+                <ListChecks className="h-4 w-4" />
+                Ver ações
+              </Link>
             </Button>
           </>
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <ScoreCard
-          score={teamScore}
-          description={
-            scoredActive.length > 0
-              ? `Baseado em ${scoredActive.length} colaborador(es) ativo(s) com KPI recente.`
-              : undefined
-          }
-        />
-        <MetricCard
-          label="Colaboradores ativos"
-          icon={Users}
-          value={activeEmployees.length}
-          isEmpty={!hasAnyEmployee && !loadingEmployees}
-          emptyMessage="Nenhum colaborador cadastrado ainda."
-          footer={
-            hasAnyEmployee
-              ? `${employees.length - activeEmployees.length} fora do ativo, incluindo férias, licença ou inativos.`
-              : undefined
-          }
-        />
-        <MetricCard
-          label="Alto desempenho"
-          icon={TrendingUp}
-          value={highlights.length}
-          isEmpty={scoredActive.length === 0}
-          emptyMessage="Sem dados suficientes para identificar destaques."
-          footer={
-            highlights.length > 0 ? "Colaboradores com score igual ou acima de 90." : undefined
-          }
-        />
-        <MetricCard
-          label="Efetivo em atenção"
-          icon={AlertTriangle}
-          value={attention.length}
-          isEmpty={scoredActive.length === 0}
-          emptyMessage="Sem dados suficientes para identificar atenção."
-          footer={
-            attention.length > 0 ? "Score entre 40 e 74. Priorize quem teve queda." : undefined
-          }
-        />
-        <MetricCard
-          label="Alertas abertos"
-          icon={AlertOctagon}
-          value={openAlerts.length}
-          isEmpty={openAlerts.length === 0}
-          emptyMessage="Nenhum alerta aberto no momento."
-          footer={
-            openAlerts.length > 0
-              ? `${criticalAlerts} crítico(s) · ${attentionAlerts} em atenção`
-              : undefined
-          }
-        />
-        <MetricCard
-          label="Feedbacks pendentes"
-          icon={MessageSquare}
-          value={0}
-          isEmpty
-          emptyMessage="Ainda sem feedbacks pendentes registrados."
-          footer="Módulo pronto para evoluir nas próximas tasks."
-        />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+        <Link to="/alertas" className="block lg:col-span-2">
+          <MetricCard
+            label="O que preciso fazer hoje?"
+            icon={ListChecks}
+            value={actionCount}
+            hint="ações"
+            isEmpty={actionCount === 0 && !loadingEmployees}
+            emptyMessage="Nenhuma ação crítica no momento."
+            footer={
+              actionCount > 0
+                ? `${openAlerts.length} alerta(s), ${attention.length} pessoa(s) em atenção e ${withoutRecentScore} sem KPI recente.`
+                : "Acompanhe novamente quando novos dados forem registrados."
+            }
+            className={
+              actionCount > 0
+                ? "h-full border-status-critical/30 bg-status-critical-soft/30 transition hover:border-status-critical/60"
+                : "h-full transition hover:border-primary/40"
+            }
+          />
+        </Link>
+
+        <Link to="/colaboradores" className="block">
+          <MetricCard
+            label="Quem precisa de atenção?"
+            icon={AlertTriangle}
+            value={attention.length}
+            isEmpty={scoredActive.length === 0}
+            emptyMessage="Sem KPIs suficientes."
+            footer={
+              attention.length > 0
+                ? "Score abaixo de 75 ou queda relevante."
+                : "Nenhum colaborador em atenção."
+            }
+            className="h-full transition hover:border-status-attention/70"
+          />
+        </Link>
+
+        <Link to="/colaboradores" className="block">
+          <MetricCard
+            label="Quem merece reconhecimento?"
+            icon={Sparkles}
+            value={highlights.length}
+            isEmpty={scoredActive.length === 0}
+            emptyMessage="Sem dados suficientes."
+            footer={
+              highlights.length > 0
+                ? "Score igual ou acima de 90."
+                : "Nenhum destaque identificado ainda."
+            }
+            className="h-full transition hover:border-status-excellent/70"
+          />
+        </Link>
       </div>
 
-      <SectionCard
-        title="Alertas prioritários"
-        description="Ocorrências mais importantes em ordem de gravidade."
-      >
-        {sortedAlerts.length === 0 ? (
-          <EmptyState
-            icon={CheckCircle2}
-            title="Nenhum alerta crítico no momento"
-            description="Continue acompanhando KPIs, metas e avaliações para manter o radar atualizado."
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Link to="/colaboradores" className="block">
+          <ScoreCard
+            score={teamScore}
+            description={
+              scoredActive.length > 0
+                ? `Saúde geral baseada em ${scoredActive.length} colaborador(es) com KPI recente.`
+                : undefined
+            }
           />
-        ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {sortedAlerts.slice(0, 6).map((alert) => (
-              <AlertCard
-                key={alert.id}
-                title={alert.title}
-                severity={alert.severity}
-                explanation={alert.explanation}
-                suggestedAction={alert.suggested_action}
-                employeeName={
-                  alert.employee_id ? (employeeById.get(alert.employee_id)?.name ?? null) : null
-                }
-                onView={() => {}}
-                onResolve={() => {}}
-                onIgnore={() => {}}
-              />
-            ))}
-          </div>
-        )}
-      </SectionCard>
+        </Link>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <Link to="/metas" className="block">
+          <MetricCard
+            label="Quais metas estão em risco?"
+            icon={Target}
+            value="—"
+            isEmpty
+            emptyMessage="Módulo de Metas e KPIs será conectado na próxima fase."
+            footer="Clique para acessar a área preparada de metas."
+            className="h-full transition hover:border-primary/40"
+          />
+        </Link>
+
+        <Link to="/colaboradores" className="block">
+          <MetricCard
+            label="O que mudou recentemente?"
+            icon={drops.length > improvements.length ? TrendingDown : TrendingUp}
+            value={drops.length + improvements.length}
+            hint="movimentos"
+            isEmpty={scoredActive.length === 0}
+            emptyMessage="Sem comparativo recente."
+            footer={`${drops.length} queda(s) e ${improvements.length} melhora(s) relevantes.`}
+            trend={
+              drops.length > improvements.length
+                ? { direction: "down", label: "Mais quedas que melhorias", positive: false }
+                : improvements.length > 0
+                  ? { direction: "up", label: "Evolução positiva", positive: true }
+                  : { direction: "flat", label: "Sem mudança relevante" }
+            }
+            className="h-full transition hover:border-primary/40"
+          />
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <SectionCard
-          title="Colaboradores em alto desempenho"
-          description="Pessoas com melhores indicadores recentes."
+          title="Fila de decisão"
+          description="As ações mais importantes para o gestor começar o dia."
+          action={
+            <Button asChild variant="outline" size="sm">
+              <Link to="/alertas">
+                Abrir ações
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          }
         >
-          {highlights.length === 0 ? (
+          {recommended.length === 0 ? (
             <EmptyState
-              title="Ainda não há destaques para mostrar"
-              description="Registre KPIs e avaliações para identificar quem está performando bem."
+              icon={CheckCircle2}
+              title="Nada crítico para agir agora"
+              description="Quando surgirem alertas, quedas de performance ou KPIs pendentes, eles aparecerão aqui."
             />
           ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {highlights.slice(0, 4).map((item) => (
-                <EmployeeMiniCard
-                  key={item.employee.id}
-                  name={item.employee.name}
-                  role={item.employee.role}
-                  department={departmentName.get(item.employee.department_id ?? "") ?? null}
-                  avatarUrl={item.employee.avatar_url}
-                  score={item.current}
-                  highlight="Score acima de 90 na última avaliação."
-                  onOpen={() => {}}
+            <ul className="divide-y divide-border">
+              {recommended.slice(0, 5).map((item) => (
+                <li key={item.title} className="py-3 first:pt-0 last:pb-0">
+                  <Link
+                    to={item.to}
+                    className="flex flex-wrap items-start justify-between gap-3 rounded-lg p-2 transition hover:bg-muted/60"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground">{item.title}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{item.reason}</p>
+                    </div>
+                    <span
+                      className={
+                        "rounded-full px-2 py-0.5 text-[11px] font-medium " +
+                        (item.priority === "alta"
+                          ? "bg-status-critical-soft text-status-critical"
+                          : item.priority === "média"
+                            ? "bg-status-attention-soft text-status-attention-foreground"
+                            : "bg-status-info-soft text-status-info")
+                      }
+                    >
+                      Prioridade {item.priority}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </SectionCard>
+
+        <SectionCard
+          title="Alertas prioritários"
+          description="Sinais abertos por gravidade."
+          action={
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/alertas">
+                Ver todos
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          }
+        >
+          {sortedAlerts.length === 0 ? (
+            <EmptyState
+              icon={CheckCircle2}
+              title="Sem alertas abertos"
+              description="Nenhum risco crítico registrado no momento."
+            />
+          ) : (
+            <div className="space-y-3">
+              {sortedAlerts.slice(0, 3).map((alert) => (
+                <AlertCard
+                  key={alert.id}
+                  title={alert.title}
+                  severity={alert.severity}
+                  explanation={alert.explanation}
+                  suggestedAction={alert.suggested_action}
+                  employeeName={
+                    alert.employee_id ? (employeeById.get(alert.employee_id)?.name ?? null) : null
+                  }
                 />
               ))}
             </div>
           )}
         </SectionCard>
+      </div>
 
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <SectionCard
-          title="Colaboradores que precisam de atenção"
-          description="Foco em desenvolvimento, alinhamento e remoção de bloqueios."
+          title="Pessoas em atenção"
+          description="Clique no colaborador para abrir o perfil e agir com contexto."
+          action={
+            <Button asChild variant="outline" size="sm">
+              <Link to="/colaboradores">
+                Ver pessoas
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          }
         >
           {attention.length === 0 ? (
             <EmptyState
-              title="Ninguém em atenção neste momento"
-              description="Sem registros de queda de score ou pendências importantes."
+              icon={CheckCircle2}
+              title="Nenhum colaborador em atenção"
+              description="A equipe não tem quedas ou scores baixos registrados agora."
             />
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -331,33 +427,77 @@ function DashboardPage() {
                   item.previous !== null ? Number(item.current) - Number(item.previous) : null;
 
                 return (
-                  <EmployeeMiniCard
+                  <Link
                     key={item.employee.id}
+                    to="/colaboradores/$id"
+                    params={{ id: item.employee.id }}
+                    className="block"
+                  >
+                    <EmployeeMiniCard
+                      name={item.employee.name}
+                      role={item.employee.role}
+                      department={departmentName.get(item.employee.department_id ?? "") ?? null}
+                      avatarUrl={item.employee.avatar_url}
+                      score={item.current}
+                      delta={delta}
+                      reason={
+                        delta !== null && delta < 0
+                          ? "Queda no score em relação à última avaliação."
+                          : "Score abaixo da faixa saudável."
+                      }
+                      suggestedAction="Abrir perfil, revisar metas e registrar próximo passo."
+                    />
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </SectionCard>
+
+        <SectionCard
+          title="Destaques para reconhecer"
+          description="Alto desempenho deve gerar reforço positivo, não só observação."
+          action={
+            <Button asChild variant="outline" size="sm">
+              <Link to="/colaboradores">
+                Ver ranking
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          }
+        >
+          {highlights.length === 0 ? (
+            <EmptyState
+              title="Ainda não há destaques"
+              description="Quando colaboradores alcançarem alto desempenho, eles aparecerão aqui."
+            />
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {highlights.slice(0, 4).map((item) => (
+                <Link
+                  key={item.employee.id}
+                  to="/colaboradores/$id"
+                  params={{ id: item.employee.id }}
+                  className="block"
+                >
+                  <EmployeeMiniCard
                     name={item.employee.name}
                     role={item.employee.role}
                     department={departmentName.get(item.employee.department_id ?? "") ?? null}
                     avatarUrl={item.employee.avatar_url}
                     score={item.current}
-                    delta={delta}
-                    reason={
-                      delta !== null && delta < 0
-                        ? "Queda no score em relação à última avaliação."
-                        : "Score em faixa de atenção."
-                    }
-                    suggestedAction="Agendar uma 1:1 e revisar metas, entregas e bloqueios."
-                    actionLabel="Abrir perfil"
-                    onOpen={() => {}}
+                    highlight="Score acima de 90 na última avaliação."
                   />
-                );
-              })}
+                </Link>
+              ))}
             </div>
           )}
         </SectionCard>
       </div>
 
       <SectionCard
-        title="Evolução de performance"
-        description="Score médio da equipe ao longo do período selecionado."
+        title="Tendência da equipe"
+        description="Score médio ao longo do período selecionado."
         action={
           <FilterBar<RangeValue> value={range} onChange={setRange} options={[...RANGE_OPTIONS]} />
         }
@@ -406,12 +546,12 @@ function DashboardPage() {
 
       <SectionCard
         title="Distribuição do efetivo por desempenho"
-        description="Quantidade de colaboradores em cada faixa de score."
+        description="Mapa rápido de saúde do time por faixa de score."
       >
         {scoredActive.length === 0 ? (
           <EmptyState
             title="Ainda não há dados suficientes para esta distribuição"
-            description="Cadastre colaboradores e registre avaliações para visualizar a faixa de cada pessoa."
+            description="Cadastre colaboradores e registre KPIs para visualizar a faixa de cada pessoa."
           />
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -426,49 +566,6 @@ function DashboardPage() {
                 />
               ))}
           </div>
-        )}
-      </SectionCard>
-
-      <SectionCard
-        title="Próximas ações gerenciais"
-        description="Sugestões com base nos indicadores atuais do efetivo."
-      >
-        {recommended.length === 0 ? (
-          <EmptyState
-            title="Sem ações recomendadas no momento"
-            description="Conforme novos dados forem registrados, sugestões personalizadas aparecerão aqui."
-          />
-        ) : (
-          <ul className="divide-y divide-border">
-            {recommended.map((item) => (
-              <li
-                key={item.title}
-                className="flex flex-wrap items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground">{item.title}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{item.reason}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={
-                      "rounded-full px-2 py-0.5 text-[11px] font-medium " +
-                      (item.priority === "alta"
-                        ? "bg-status-critical-soft text-status-critical"
-                        : item.priority === "média"
-                          ? "bg-status-attention-soft text-status-attention-foreground"
-                          : "bg-status-info-soft text-status-info")
-                    }
-                  >
-                    Prioridade {item.priority}
-                  </span>
-                  <Button size="sm" variant="outline">
-                    Ver ação
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
         )}
       </SectionCard>
     </div>
