@@ -1,59 +1,45 @@
+## Metas — UI de criação e finalização (front-end)
 
-## Configurações — Hub Administrativo
+Renomear "Metas e KPIs" para **Metas** e adicionar um fluxo simples de criação/conclusão de metas, com estado local (sem backend).
 
-Substituir o placeholder de `/configuracoes` por um hub organizado em 5 categorias, com cards listando módulos administrativos. Sem backend, sem CRUD — apenas arquitetura visual reaproveitando o Design System.
+### Mudanças
 
-### Arquitetura
+1. **Renomear menu** — em `src/components/php/AppSidebar.tsx` e `MobileBottomNav.tsx`, trocar o label "Metas e KPIs" por "Metas". Atualizar também o `<title>` em `src/routes/_app.metas.tsx`.
 
-Página única (`src/routes/_app.configuracoes.tsx`):
+2. **Store local de metas customizadas** — criar `src/features/goals/local-goals-store.ts`:
+   - Hook `useLocalGoals()` com `useState` + persistência em `localStorage` (chave `performativo:custom-goals`).
+   - Tipo `LocalGoal { id, nome, funcionario_id, funcionario_nome, prazo, status: "pending" | "completed", created_at }`.
+   - Métodos: `addGoal`, `completeGoal`, `removeGoal`.
 
-1. `PageHeader` — "Configurações" + descrição curta.
-2. Grid responsivo (`grid-cols-1 lg:grid-cols-2`) com 5 `SectionCard`, um por categoria.
-3. Em cada card, lista vertical de `SettingsItem` (componente inline na própria rota).
+3. **Botão "+ Criar Meta"** — adicionado no `PageHeader` de `_app.metas.tsx`, ao lado do "Ver ações".
 
-### Categorias e módulos
+4. **Modal de criação** — novo `src/components/php/CreateGoalDialog.tsx` (shadcn `Dialog`):
+   - Campo **Nome da meta** (`Input`).
+   - Campo **Funcionário atribuído** (`Select`, populado de `useEmployees()` — lista real já existente; quando vazia, mostra placeholder "Nenhum colaborador cadastrado").
+   - Campo **Prazo** (shadcn DatePicker com `Popover` + `Calendar`, `pointer-events-auto`).
+   - Botão **Criar Meta** (desabilitado até os 3 campos preenchidos) → chama `addGoal` e fecha modal.
 
-| Categoria   | Módulos (ícone · nome · descrição · status)                                                                                                                                                                                  |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Empresa     | Building2 · Dados da empresa · "Razão social, CNPJ, contato" · Em desenvolvimento<br>Palette · Identidade visual · "Logo e cores do sistema" · Planejado                                                                      |
-| Organização | FolderTree · Departamentos · "Organize as áreas da empresa" · Em desenvolvimento<br>Briefcase · Cargos · "Cargos e senioridades" · Planejado<br>MapPin · Unidades · "Filiais e localidades" · Planejado                       |
-| Pessoas     | Users · Usuários · "Gerencie usuários do sistema" · Em desenvolvimento<br>UserCog · Gestores · "Defina líderes e suas equipes" · Planejado<br>Lock · Permissões · "Controle o acesso dos usuários" · Planejado               |
-| Performance | Gauge · Escala de Score · "Faixas e cores de performance" · Planejado<br>MessageSquare · Categorias de Feedback · "Tipos e tags de feedback" · Planejado<br>Target · Tipos de Meta · "Categorias e unidades de meta" · Planejado |
-| Sistema     | Plug · Integrações · "Conecte ferramentas externas" · Planejado<br>History · Auditoria · "Histórico de alterações" · Planejado<br>ArrowDownUp · Importação / Exportação · "Mova dados em massa" · Planejado                  |
+5. **Lista de metas criadas** — nova seção `SectionCard` "Minhas metas" no topo da página (acima dos grupos atuais de risco/prazo/etc.), exibindo as metas locais como linhas compactas no mesmo estilo visual do `GoalRow` existente:
+   - Nome, avatar/nome do funcionário, prazo (com label relativo tipo "Em 5d" / "2d atrasada"), badge de status.
+   - Botão **"Meta finalizada"** (`Button` variant outline + ícone `CheckCircle2`) à direita.
+   - Ao concluir: status vira `completed`, badge fica verde ("Concluída"), botão é substituído por um rótulo discreto "Concluída em <data>".
+   - Estado vazio: `EmptyState` curto "Nenhuma meta criada ainda. Clique em + Criar Meta para começar."
 
-### Status
+6. **Compatibilidade com o que já existe** — os blocos atuais (Em risco / Próximas do prazo / No prazo / Concluídas), os KPIs do hero e o filtro de responsável continuam intactos, alimentados pelos dados mockados de `usePerformanceWorkspaceData`. A nova seção de metas locais é independente e não interfere neles.
 
-Apenas dois rótulos nesta fase, via `StatusBadge`:
-
-- **Em desenvolvimento** — tom `info`
-- **Planejado** — tom `neutral`
-
-Quando um módulo virar realidade, o status passa para "Disponível".
-
-### Linha do item (`SettingsItem`)
-
-Botão clicável ocupando a linha:
+### Estrutura de dados (local)
 
 ```text
-[ícone 36px]  Nome do módulo                  [StatusBadge]  ›
-              Descrição curta em muted
+LocalGoal {
+  id: string            // crypto.randomUUID()
+  nome: string
+  funcionario_id: string
+  funcionario_nome: string
+  prazo: string         // ISO date
+  status: "pending" | "completed"
+  created_at: string
+  completed_at?: string
+}
 ```
 
-Hover suave (`hover:bg-muted/40`), divisor sutil entre itens, sem bordas pesadas. Componente inline na rota — não cria padrão global novo.
-
-### Navegação
-
-Todos os itens apontam para uma **única** rota placeholder compartilhada:
-
-- Nova rota `src/routes/_app.configuracoes.em-breve.tsx` reaproveitando `PlaceholderPage` com cópia genérica ("Este módulo está sendo preparado. Em breve estará disponível aqui.").
-
-Sem rotas dinâmicas por slug. Quando um módulo começar a ser desenvolvido de verdade (Departamentos, Usuários etc.), ele ganha sua própria rota e o link no hub é atualizado pontualmente.
-
-### Arquivos
-
-- **Editar** `src/routes/_app.configuracoes.tsx` — implementa o hub.
-- **Criar** `src/routes/_app.configuracoes.em-breve.tsx` — placeholder único.
-
-### Fora do escopo
-
-CRUD, backend, permissões reais, integrações, auditoria, importação/exportação.
+Persistido em `localStorage`, pronto para futura troca por chamadas reais ao backend (mesma forma de hook).

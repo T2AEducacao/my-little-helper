@@ -16,7 +16,7 @@ const NAV_ITEMS = [
   { title: "Visão Geral", url: "/", icon: LayoutDashboard },
   { title: "Ações", url: "/alertas", icon: ListChecks },
   { title: "Pessoas", url: "/colaboradores", icon: Users },
-  { title: "Metas e KPIs", url: "/metas", icon: Target },
+  { title: "Metas", url: "/metas", icon: Target },
   { title: "Análises", url: "/analises", icon: ChartNoAxesCombined },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ] as const;
