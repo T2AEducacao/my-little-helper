@@ -454,6 +454,46 @@ function buildBottlenecks(args: {
 function AnalisesPage() {
   const [range, setRange] = useState<RangeValue>("30");
   const model = useAnaliseModel(range);
+  const [aiOpen, setAiOpen] = useState(false);
+
+  const callAi = useServerFn(gerarAnaliseEmpresa);
+  const aiMutation = useMutation({
+    mutationFn: () =>
+      callAi({
+        data: {
+          rangeLabel: model.rangeLabel,
+          activeCount: model.activeCount,
+          teamScore: model.teamScore,
+          teamDelta: model.teamDelta,
+          attentionRiskCount: model.attentionRiskCount,
+          attentionRiskShare: model.attentionRiskShare,
+          alertsCount: model.alertsCount,
+          criticalAlertsCount: model.criticalAlertsCount,
+          goalsAtRiskCount: model.goalsAtRiskCount,
+          evolutionDelta: model.evolutionDelta,
+          topRisingAreas: model.topRisingAreas.slice(0, 5).map((a) => ({
+            name: a.name,
+            score: a.score,
+            delta: a.delta,
+            count: a.scoredCount,
+            riskCount: a.riskCount ?? 0,
+          })),
+          topFallingAreas: model.topFallingAreas.slice(0, 5).map((a) => ({
+            name: a.name,
+            score: a.score,
+            delta: a.delta,
+            count: a.scoredCount,
+            riskCount: a.riskCount ?? 0,
+          })),
+          bottlenecks: model.bottlenecks.slice(0, 10).map((b) => b.title),
+        },
+      }),
+  });
+
+  const openAndRun = () => {
+    setAiOpen(true);
+    if (!aiMutation.isPending) aiMutation.mutate();
+  };
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -461,11 +501,17 @@ function AnalisesPage() {
         title="Análises"
         description="Leitura objetiva da performance da empresa: padrões, comparativos e evolução nos dados."
         actions={
-          <FilterBar<RangeValue>
-            value={range}
-            onChange={setRange}
-            options={[...RANGE_OPTIONS]}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <FilterBar<RangeValue>
+              value={range}
+              onChange={setRange}
+              options={[...RANGE_OPTIONS]}
+            />
+            <Button onClick={openAndRun} className="gap-2">
+              <Wand2 className="h-4 w-4" />
+              Analisar com IA
+            </Button>
+          </div>
         }
       />
 
@@ -476,6 +522,50 @@ function AnalisesPage() {
       <ManagerLoadBlock model={model} />
       <DistributionBlock model={model} />
       <BottlenecksBlock model={model} />
+
+      <Dialog open={aiOpen} onOpenChange={setAiOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wand2 className="h-4 w-4 text-primary" />
+              Análise da empresa
+            </DialogTitle>
+            <DialogDescription>
+              Resumo gerado por IA com base nos {model.rangeLabel}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[60vh] overflow-y-auto">
+            {aiMutation.isPending && (
+              <div className="flex items-center gap-3 py-8 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Gerando análise…
+              </div>
+            )}
+            {aiMutation.isError && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+                Não foi possível gerar a análise agora. Tente novamente em instantes.
+              </div>
+            )}
+            {aiMutation.isSuccess && aiMutation.data && (
+              <article className="prose prose-sm dark:prose-invert max-w-none">
+                <ReactMarkdown>{aiMutation.data.analysis}</ReactMarkdown>
+              </article>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => aiMutation.mutate()}
+              disabled={aiMutation.isPending}
+            >
+              Gerar novamente
+            </Button>
+            <Button onClick={() => setAiOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
