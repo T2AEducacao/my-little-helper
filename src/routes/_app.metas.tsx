@@ -154,7 +154,8 @@ function GoalsPage() {
 
 function GoalRow({ goal, employee }: { goal: PerformanceGoal; employee?: PerformanceEmployee }) {
   const status = GOAL_STATUS_META[goal.status];
-  const progressTone = goal.status === "achieved" ? "excellent" : goal.status;
+  const progressTone =
+    goal.status === "achieved" ? "excellent" : goal.status === "on_track" ? "good" : "risk";
 
   return (
     <article className="py-4 first:pt-0 last:pb-0">
