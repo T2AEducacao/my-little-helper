@@ -93,12 +93,19 @@ function GoalsPage() {
   const performanceEmployees = performanceData.employees;
   const goals = performanceData.goals;
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
+  const [createOpen, setCreateOpen] = useState(false);
+  const { goals: localGoals, addGoal, completeGoal } = useLocalGoals();
   const [openGroups, setOpenGroups] = useState<Record<GroupKey, boolean>>({
     risk: true,
     due_soon: true,
     on_track: false,
     achieved: false,
   });
+
+  const employeeOptions = useMemo(
+    () => employees.map((e) => ({ id: e.id, name: e.name })),
+    [employees],
+  );
 
   const employeeById = useMemo(
     () => new Map(performanceEmployees.map((e) => [e.id, e] as const)),
@@ -132,17 +139,33 @@ function GoalsPage() {
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-5">
       <PageHeader
-        title="Metas e KPIs"
+        title="Metas"
         description="Veja em segundos o que precisa de atenção e o que está caminhando bem."
         actions={
-          <Button asChild variant="outline" size="sm">
-            <Link to="/alertas">
-              <ListChecks className="h-4 w-4" />
-              Ver ações
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/alertas">
+                <ListChecks className="h-4 w-4" />
+                Ver ações
+              </Link>
+            </Button>
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Criar Meta
+            </Button>
+          </div>
         }
       />
+
+      <CreateGoalDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        employees={employeeOptions}
+        onCreate={addGoal}
+      />
+
+      <LocalGoalsSection goals={localGoals} onComplete={completeGoal} />
+
 
       {/* Hero KPIs */}
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-card)]">
