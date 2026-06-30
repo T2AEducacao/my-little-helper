@@ -1,13 +1,13 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { AlertTriangle, LayoutDashboard, Sparkles, Target, Users } from "lucide-react";
+import { ChartNoAxesCombined, LayoutDashboard, ListChecks, Target, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [
-  { title: "Início", url: "/", icon: LayoutDashboard },
+  { title: "Visão", url: "/", icon: LayoutDashboard },
+  { title: "Ações", url: "/alertas", icon: ListChecks },
   { title: "Pessoas", url: "/colaboradores", icon: Users },
-  { title: "Metas", url: "/metas", icon: Target },
-  { title: "Alertas", url: "/alertas", icon: AlertTriangle },
-  { title: "IA", url: "/insights", icon: Sparkles },
+  { title: "KPIs", url: "/metas", icon: Target },
+  { title: "Análises", url: "/analises", icon: ChartNoAxesCombined },
 ] as const;
 
 export function MobileBottomNav() {

@@ -7,14 +7,15 @@ import { Outlet, createFileRoute, useNavigate, useRouterState } from "@tanstack/
 import { useEffect, useState } from "react";
 
 const PAGE_TITLES: Record<string, string> = {
-  "/": "Dashboard",
-  "/colaboradores": "Colaboradores",
-  "/metas": "Metas e Indicadores",
+  "/": "Visão Geral",
+  "/alertas": "Ações",
+  "/colaboradores": "Pessoas",
+  "/metas": "Metas e KPIs",
+  "/analises": "Análises",
   "/avaliacoes": "Avaliações",
   "/feedbacks": "Feedbacks",
   "/reunioes": "Reuniões 1:1",
   "/desenvolvimento": "Desenvolvimento",
-  "/alertas": "Alertas",
   "/insights": "Insights IA",
   "/configuracoes": "Configurações",
 };

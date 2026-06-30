@@ -11,29 +11,21 @@ import {
 } from "@/components/ui/sidebar";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  AlertTriangle,
   BarChart3,
-  Calendar,
-  ClipboardCheck,
+  ChartNoAxesCombined,
   LayoutDashboard,
-  MessageSquare,
+  ListChecks,
   Settings,
-  Sparkles,
   Target,
-  TrendingUp,
   Users,
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Colaboradores", url: "/colaboradores", icon: Users },
-  { title: "Metas e Indicadores", url: "/metas", icon: Target },
-  { title: "Avaliações", url: "/avaliacoes", icon: ClipboardCheck },
-  { title: "Feedbacks", url: "/feedbacks", icon: MessageSquare },
-  { title: "Reuniões 1:1", url: "/reunioes", icon: Calendar },
-  { title: "Desenvolvimento", url: "/desenvolvimento", icon: TrendingUp },
-  { title: "Alertas", url: "/alertas", icon: AlertTriangle },
-  { title: "Insights IA", url: "/insights", icon: Sparkles },
+  { title: "Visão Geral", url: "/", icon: LayoutDashboard },
+  { title: "Ações", url: "/alertas", icon: ListChecks },
+  { title: "Pessoas", url: "/colaboradores", icon: Users },
+  { title: "Metas e KPIs", url: "/metas", icon: Target },
+  { title: "Análises", url: "/analises", icon: ChartNoAxesCombined },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ] as const;
 

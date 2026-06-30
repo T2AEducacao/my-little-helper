@@ -20,6 +20,7 @@ import { Route as AppDesenvolvimentoRouteImport } from './routes/_app.desenvolvi
 import { Route as AppConfiguracoesRouteImport } from './routes/_app.configuracoes'
 import { Route as AppColaboradoresRouteImport } from './routes/_app.colaboradores'
 import { Route as AppAvaliacoesRouteImport } from './routes/_app.avaliacoes'
+import { Route as AppAnalisesRouteImport } from './routes/_app.analises'
 import { Route as AppAlertasRouteImport } from './routes/_app.alertas'
 import { Route as AppColaboradoresIdRouteImport } from './routes/_app.colaboradores.$id'
 
@@ -77,6 +78,11 @@ const AppAvaliacoesRoute = AppAvaliacoesRouteImport.update({
   path: '/avaliacoes',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAnalisesRoute = AppAnalisesRouteImport.update({
+  id: '/analises',
+  path: '/analises',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAlertasRoute = AppAlertasRouteImport.update({
   id: '/alertas',
   path: '/alertas',
@@ -92,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/auth': typeof AuthRoute
   '/alertas': typeof AppAlertasRoute
+  '/analises': typeof AppAnalisesRoute
   '/avaliacoes': typeof AppAvaliacoesRoute
   '/colaboradores': typeof AppColaboradoresRouteWithChildren
   '/configuracoes': typeof AppConfiguracoesRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/alertas': typeof AppAlertasRoute
+  '/analises': typeof AppAnalisesRoute
   '/avaliacoes': typeof AppAvaliacoesRoute
   '/colaboradores': typeof AppColaboradoresRouteWithChildren
   '/configuracoes': typeof AppConfiguracoesRoute
@@ -121,6 +129,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
   '/_app/alertas': typeof AppAlertasRoute
+  '/_app/analises': typeof AppAnalisesRoute
   '/_app/avaliacoes': typeof AppAvaliacoesRoute
   '/_app/colaboradores': typeof AppColaboradoresRouteWithChildren
   '/_app/configuracoes': typeof AppConfiguracoesRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/alertas'
+    | '/analises'
     | '/avaliacoes'
     | '/colaboradores'
     | '/configuracoes'
@@ -151,6 +161,7 @@ export interface FileRouteTypes {
   to:
     | '/auth'
     | '/alertas'
+    | '/analises'
     | '/avaliacoes'
     | '/colaboradores'
     | '/configuracoes'
@@ -166,6 +177,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/auth'
     | '/_app/alertas'
+    | '/_app/analises'
     | '/_app/avaliacoes'
     | '/_app/colaboradores'
     | '/_app/configuracoes'
@@ -262,6 +274,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAvaliacoesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/analises': {
+      id: '/_app/analises'
+      path: '/analises'
+      fullPath: '/analises'
+      preLoaderRoute: typeof AppAnalisesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/alertas': {
       id: '/_app/alertas'
       path: '/alertas'
@@ -292,6 +311,7 @@ const AppColaboradoresRouteWithChildren =
 
 interface AppRouteChildren {
   AppAlertasRoute: typeof AppAlertasRoute
+  AppAnalisesRoute: typeof AppAnalisesRoute
   AppAvaliacoesRoute: typeof AppAvaliacoesRoute
   AppColaboradoresRoute: typeof AppColaboradoresRouteWithChildren
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
@@ -305,6 +325,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAlertasRoute: AppAlertasRoute,
+  AppAnalisesRoute: AppAnalisesRoute,
   AppAvaliacoesRoute: AppAvaliacoesRoute,
   AppColaboradoresRoute: AppColaboradoresRouteWithChildren,
   AppConfiguracoesRoute: AppConfiguracoesRoute,
@@ -325,3 +346,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
