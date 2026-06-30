@@ -165,7 +165,7 @@ function AuthPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-12">
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)]">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">People Performance Hub</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Performativo</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "signin" ? "Acesse sua conta" : "Crie sua conta e comece em minutos"}
           </p>

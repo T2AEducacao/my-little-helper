@@ -31,7 +31,7 @@ import { useMemo, useState } from "react";
 export const Route = createFileRoute("/_app/alertas")({
   head: () => ({
     meta: [
-      { title: "Ações · People Performance Hub" },
+      { title: "Ações · Performativo" },
       {
         name: "description",
         content:
