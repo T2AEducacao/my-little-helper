@@ -611,17 +611,19 @@ function initials(name: string): string {
     .join("");
 }
 
-function LocalGoalsSection({
+function DbGoalsSection({
   goals,
+  employeesById,
   onComplete,
 }: {
-  goals: LocalGoal[];
+  goals: GoalRow[];
+  employeesById: Map<string, { id: string; name: string }>;
   onComplete: (id: string) => void;
 }) {
   return (
     <SectionCard
       title="Minhas metas"
-      description="Metas criadas por você. Persistidas localmente neste navegador."
+      description="Metas atribuídas pelo líder. O colaborador vê a versão dele em /funcionario."
     >
       {goals.length === 0 ? (
         <EmptyState
@@ -633,7 +635,8 @@ function LocalGoalsSection({
         <div className="divide-y divide-border rounded-xl border border-border">
           {goals.map((goal) => {
             const isDone = goal.status === "completed";
-            const dueInfo = getLocalDueInfo(goal.prazo, goal.status);
+            const dueInfo = getLocalDueInfo(goal.deadline, goal.status);
+            const employeeName = employeesById.get(goal.employee_id)?.name ?? "Colaborador";
             return (
               <article
                 key={goal.id}
@@ -646,7 +649,7 @@ function LocalGoalsSection({
                       isDone && "text-muted-foreground line-through",
                     )}
                   >
-                    {goal.nome}
+                    {goal.name}
                   </h4>
                   <div className="mt-1 text-xs text-muted-foreground">
                     Criada em {formatGoalDate(goal.created_at)}
@@ -656,10 +659,10 @@ function LocalGoalsSection({
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Avatar className="h-5 w-5">
                     <AvatarFallback className="bg-primary/10 text-[10px] text-primary">
-                      {initials(goal.funcionario_nome)}
+                      {initials(employeeName)}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="truncate">{goal.funcionario_nome}</span>
+                  <span className="truncate">{employeeName}</span>
                 </div>
 
                 <div className="text-xs">
@@ -675,9 +678,11 @@ function LocalGoalsSection({
                     <CalendarClock className="h-3.5 w-3.5" />
                     {dueInfo.label}
                   </div>
-                  <div className="mt-0.5 text-muted-foreground">
-                    {formatGoalDate(goal.prazo)}
-                  </div>
+                  {goal.deadline && (
+                    <div className="mt-0.5 text-muted-foreground">
+                      {formatGoalDate(goal.deadline)}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-end gap-2">
@@ -710,10 +715,11 @@ function LocalGoalsSection({
 }
 
 function getLocalDueInfo(
-  date: string,
+  date: string | null,
   status: "pending" | "completed",
 ): { label: string; tone: "risk" | "attention" | "good" | "neutral" } {
   if (status === "completed") return { label: "Concluída", tone: "neutral" };
+  if (!date) return { label: "Sem prazo", tone: "neutral" };
   const days = daysUntil(date);
   if (days === null) return { label: "Sem prazo", tone: "neutral" };
   if (days < 0) return { label: `${Math.abs(days)}d atrasada`, tone: "risk" };
@@ -721,4 +727,5 @@ function getLocalDueInfo(
   if (days <= 7) return { label: `Em ${days}d`, tone: "attention" };
   return { label: `Em ${days}d`, tone: "good" };
 }
+
 
