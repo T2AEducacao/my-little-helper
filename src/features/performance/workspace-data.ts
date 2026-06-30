@@ -1,8 +1,25 @@
 import { useMemo } from "react";
 import type { AlertRow, EmployeeRow, SnapshotRow } from "@/lib/php-data";
 
+export type PerformanceGoalStatus = "risk" | "on_track" | "achieved";
+
+export type PerformanceGoal = {
+  id: string;
+  employee_id: string;
+  title: string;
+  category: string;
+  progress: number;
+  target: number;
+  current: number;
+  unit: string;
+  due_date: string;
+  status: PerformanceGoalStatus;
+  description: string;
+};
+
 export type PerformanceWorkspaceData = {
   actions: AlertRow[];
+  goals: PerformanceGoal[];
   snapshots: SnapshotRow[];
   isMocked: boolean;
 };
@@ -11,6 +28,7 @@ export function usePerformanceWorkspaceData(employees: EmployeeRow[]): Performan
   return useMemo(
     () => ({
       actions: buildMockActions(employees),
+      goals: buildMockGoals(employees),
       snapshots: buildMockSnapshots(employees),
       isMocked: true,
     }),
@@ -89,6 +107,84 @@ function buildMockActions(employees: EmployeeRow[]): AlertRow[] {
   }
 
   return actions;
+}
+
+function buildMockGoals(employees: EmployeeRow[]): PerformanceGoal[] {
+  const activeEmployees = employees.filter((employee) => employee.status === "active");
+  const templates = [
+    {
+      title: "Atingir meta de entregas do ciclo",
+      category: "Produtividade",
+      progress: 62,
+      target: 100,
+      current: 62,
+      unit: "%",
+      dueDays: 9,
+      status: "risk",
+      description: "Ritmo abaixo do necessário para fechar o ciclo dentro do esperado.",
+    },
+    {
+      title: "Manter qualidade nas entregas",
+      category: "Qualidade",
+      progress: 84,
+      target: 95,
+      current: 80,
+      unit: "%",
+      dueDays: 18,
+      status: "on_track",
+      description: "Indicador segue saudável, com pequena margem para melhoria.",
+    },
+    {
+      title: "Concluir plano de desenvolvimento",
+      category: "Desenvolvimento",
+      progress: 100,
+      target: 4,
+      current: 4,
+      unit: "ações",
+      dueDays: -2,
+      status: "achieved",
+      description: "Todas as ações previstas para o ciclo foram concluídas.",
+    },
+    {
+      title: "Reduzir retrabalho no período",
+      category: "Eficiência",
+      progress: 48,
+      target: 10,
+      current: 16,
+      unit: "ocorrências",
+      dueDays: 6,
+      status: "risk",
+      description: "Volume de retrabalho acima da meta combinada para o período.",
+    },
+    {
+      title: "Cumprir rotina de acompanhamento",
+      category: "Gestão",
+      progress: 76,
+      target: 8,
+      current: 6,
+      unit: "check-ins",
+      dueDays: 14,
+      status: "on_track",
+      description: "Rotina de acompanhamento evoluindo sem necessidade de intervenção imediata.",
+    },
+  ] as const;
+
+  return activeEmployees.slice(0, templates.length).map((employee, index) => {
+    const template = templates[index];
+    return {
+      id: `mock-goal-${employee.id}-${index}`,
+      employee_id: employee.id,
+      title: template.title,
+      category: template.category,
+      progress: template.progress,
+      target: template.target,
+      current: template.current,
+      unit: template.unit,
+      due_date: dateOnly(daysAgo(-template.dueDays)),
+      status: template.status,
+      description: template.description,
+    };
+  });
 }
 
 function buildMockSnapshots(employees: EmployeeRow[]): SnapshotRow[] {
