@@ -30,7 +30,7 @@ import type { ScoreStatus } from "@/components/php/types";
 export const Route = createFileRoute("/_app/metas")({
   head: () => ({
     meta: [
-      { title: "Metas e KPIs · People Performance Hub" },
+      { title: "Metas e KPIs · Performativo" },
       {
         name: "description",
         content: "Leia em segundos o que está em risco, perto do prazo, no caminho e concluído.",

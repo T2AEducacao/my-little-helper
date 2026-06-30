@@ -57,7 +57,7 @@ type RangeValue = (typeof RANGE_OPTIONS)[number]["value"];
 export const Route = createFileRoute("/_app/")({
   head: () => ({
     meta: [
-      { title: "Central de Gestão · People Performance Hub" },
+      { title: "Central de Gestão · Performativo" },
       {
         name: "description",
         content:

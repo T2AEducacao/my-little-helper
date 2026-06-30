@@ -83,7 +83,7 @@ function AppLayout() {
     );
   }
 
-  const title = PAGE_TITLES[pathname] ?? "People Performance Hub";
+  const title = PAGE_TITLES[pathname] ?? "Performativo";
 
   return (
     <SidebarProvider>

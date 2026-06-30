@@ -49,7 +49,7 @@ import {
 export const Route = createFileRoute("/_app/analises")({
   head: () => ({
     meta: [
-      { title: "Análises · People Performance Hub" },
+      { title: "Análises · Performativo" },
       {
         name: "description",
         content:
