@@ -39,7 +39,8 @@ const NAV_ITEMS = [
 
 export function AppSidebar() {
   const currentPath = useRouterState({ select: (s) => s.location.pathname });
-  const isActive = (url: string) => (url === "/" ? currentPath === "/" : currentPath.startsWith(url));
+  const isActive = (url: string) =>
+    url === "/" ? currentPath === "/" : currentPath.startsWith(url);
 
   return (
     <Sidebar collapsible="icon">
@@ -50,7 +51,7 @@ export function AppSidebar() {
           </div>
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
             <span className="text-sm font-semibold tracking-tight">People Hub</span>
-            <span className="text-[11px] text-sidebar-foreground/60">Performance & Pessoas</span>
+            <span className="text-[11px] text-sidebar-foreground/60">Performance de Efetivo</span>
           </div>
         </Link>
       </SidebarHeader>
@@ -76,7 +77,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-sidebar-border px-3 py-3 group-data-[collapsible=icon]:hidden">
         <p className="px-2 text-[11px] text-sidebar-foreground/60">
-          Acompanhe metas, entregas, evolução e feedbacks com clareza.
+          Acompanhe KPIs, metas, evolução e desempenho do efetivo.
         </p>
       </SidebarFooter>
     </Sidebar>
