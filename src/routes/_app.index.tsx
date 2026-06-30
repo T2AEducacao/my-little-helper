@@ -99,7 +99,7 @@ function ManagementCenterPage() {
       };
     })
     .filter((item) => item.current !== null) as {
-    employee: (typeof employees)[number];
+    employee: (typeof performanceEmployees)[number];
     current: number;
     previous: number | null;
   }[];
@@ -125,6 +125,26 @@ function ManagementCenterPage() {
   const improvements = scoredActive.filter(
     (item) => item.previous !== null && item.current - item.previous >= 5,
   );
+  const enteredAttention = scoredActive.filter(
+    (item) =>
+      item.previous !== null &&
+      scoreToStatus(item.previous) !== "critical" &&
+      scoreToStatus(item.previous) !== "risk" &&
+      scoreToStatus(item.previous) !== "attention" &&
+      (scoreToStatus(item.current) === "critical" ||
+        scoreToStatus(item.current) === "risk" ||
+        scoreToStatus(item.current) === "attention"),
+  );
+  const leftRisk = scoredActive.filter(
+    (item) =>
+      item.previous !== null &&
+      (scoreToStatus(item.previous) === "critical" ||
+        scoreToStatus(item.previous) === "risk" ||
+        scoreToStatus(item.previous) === "attention") &&
+      scoreToStatus(item.current) !== "critical" &&
+      scoreToStatus(item.current) !== "risk" &&
+      scoreToStatus(item.current) !== "attention",
+  );
   const withoutRecentScore = Math.max(0, activeEmployees.length - scoredActive.length);
 
   const openAlerts = alerts;
@@ -137,6 +157,35 @@ function ManagementCenterPage() {
   const distribution = buildDistribution(performanceEmployees, latest);
   const series = buildEvolutionSeries(snapshots, Number(range));
   const goalsAtRisk = goals.filter((goal) => goal.status === "risk").length;
+  const riskMomentum =
+    enteredAttention.length + drops.length > leftRisk.length + improvements.length
+      ? "up"
+      : leftRisk.length + improvements.length > enteredAttention.length + drops.length
+        ? "down"
+        : "flat";
+  const topRecentChanges = [
+    ...drops.slice(0, 2).map((item) => ({
+      id: `drop-${item.employee.id}`,
+      title: `${item.employee.name} piorou ${Math.abs(item.current - (item.previous ?? item.current)).toFixed(1)} pts`,
+      reason: "Priorize uma conversa objetiva para entender bloqueios recentes.",
+      to: item.employee.is_mock ? "/alertas" : "/colaboradores/$id",
+      params: item.employee.is_mock ? undefined : { id: item.employee.id },
+    })),
+    ...enteredAttention.slice(0, 2).map((item) => ({
+      id: `attention-${item.employee.id}`,
+      title: `${item.employee.name} entrou em atenção`,
+      reason: "O status saiu da zona saudável e exige acompanhamento próximo.",
+      to: item.employee.is_mock ? "/alertas" : "/colaboradores/$id",
+      params: item.employee.is_mock ? undefined : { id: item.employee.id },
+    })),
+    ...improvements.slice(0, 2).map((item) => ({
+      id: `improvement-${item.employee.id}`,
+      title: `${item.employee.name} melhorou ${Math.abs(item.current - (item.previous ?? item.current)).toFixed(1)} pts`,
+      reason: "Boa oportunidade para reforço positivo ou reconhecimento.",
+      to: item.employee.is_mock ? "/alertas" : "/colaboradores/$id",
+      params: item.employee.is_mock ? undefined : { id: item.employee.id },
+    })),
+  ].slice(0, 4);
 
   const recommended = useMemo(() => {
     const items: {
@@ -320,6 +369,91 @@ function ManagementCenterPage() {
           />
         </Link>
       </div>
+
+      <SectionCard
+        title="Mudanças desde a última atualização"
+        description="O que mudou no time e pode alterar a prioridade do gestor hoje."
+        action={
+          <Button asChild variant="outline" size="sm">
+            <Link to="/alertas">
+              Resolver mudanças
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        }
+      >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            label="Melhoraram"
+            icon={TrendingUp}
+            value={improvements.length}
+            isEmpty={improvements.length === 0}
+            emptyMessage="Sem melhora relevante."
+            footer="Score subiu 5 pontos ou mais."
+            trend={{ direction: "up", label: "Evolução positiva", positive: true }}
+          />
+          <MetricCard
+            label="Pioraram"
+            icon={TrendingDown}
+            value={drops.length}
+            isEmpty={drops.length === 0}
+            emptyMessage="Sem queda relevante."
+            footer="Score caiu 5 pontos ou mais."
+            trend={{ direction: "down", label: "Exige atenção", positive: false }}
+          />
+          <MetricCard
+            label="Novos em atenção"
+            icon={AlertTriangle}
+            value={enteredAttention.length}
+            isEmpty={enteredAttention.length === 0}
+            emptyMessage="Ninguém entrou em atenção."
+            footer="Mudança de saudável para atenção, risco ou crítico."
+          />
+          <MetricCard
+            label="Saíram do risco"
+            icon={CheckCircle2}
+            value={leftRisk.length}
+            isEmpty={leftRisk.length === 0}
+            emptyMessage="Ninguém saiu do risco."
+            footer={
+              riskMomentum === "up"
+                ? "Mais quedas/entradas em atenção do que recuperações."
+                : riskMomentum === "down"
+                  ? "Mais recuperações/melhoras do que novos riscos."
+                  : "Entradas e saídas de risco equilibradas."
+            }
+            trend={{
+              direction: riskMomentum === "up" ? "down" : riskMomentum === "down" ? "up" : "flat",
+              label:
+                riskMomentum === "up"
+                  ? "Riscos aumentando"
+                  : riskMomentum === "down"
+                    ? "Riscos diminuindo"
+                    : "Riscos estáveis",
+              positive: riskMomentum !== "up",
+            }}
+          />
+        </div>
+
+        {topRecentChanges.length > 0 && (
+          <div className="mt-5 divide-y divide-border rounded-xl border border-border bg-muted/20">
+            {topRecentChanges.map((change) => (
+              <Link
+                key={change.id}
+                to={change.to}
+                params={change.params}
+                className="flex flex-wrap items-center justify-between gap-3 p-3 transition hover:bg-muted/60"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">{change.title}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{change.reason}</p>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+            ))}
+          </div>
+        )}
+      </SectionCard>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <SectionCard
