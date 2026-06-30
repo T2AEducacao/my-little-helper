@@ -10,7 +10,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/": "Visão Geral",
   "/alertas": "Ações",
   "/colaboradores": "Pessoas",
-  "/metas": "Metas e KPIs",
+  "/metas": "Metas",
   "/analises": "Análises",
   "/avaliacoes": "Avaliações",
   "/feedbacks": "Feedbacks",
