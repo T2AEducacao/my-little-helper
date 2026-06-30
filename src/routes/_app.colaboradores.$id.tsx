@@ -571,23 +571,6 @@ function ProfileTab({
 }
 
 
-function Detail({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-      <span className="text-muted-foreground">{label}:</span>
-      <span className="truncate text-foreground">{value}</span>
-    </div>
-  );
-}
 
 type DecisionInput = {
   score: number | null;
