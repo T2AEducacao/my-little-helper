@@ -17,6 +17,9 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Minus,
+  UserCheck,
+  Trophy,
+  AlertTriangle,
 } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -58,6 +61,7 @@ import { PageHeader } from "@/components/php/PageHeader";
 import { EmptyState } from "@/components/php/EmptyState";
 import { StatusBadge } from "@/components/php/StatusBadge";
 import { EmployeeFormDialog } from "@/components/php/EmployeeFormDialog";
+import { MetricCard } from "@/components/php/MetricCard";
 import { scoreToStatus, scoreLabel } from "@/components/php/types";
 import {
   useEmployees,
@@ -73,6 +77,16 @@ import {
 } from "@/lib/php-data";
 
 export const Route = createFileRoute("/_app/colaboradores")({
+  head: () => ({
+    meta: [
+      { title: "Colaboradores · People Performance Hub" },
+      {
+        name: "description",
+        content:
+          "Gerencie o efetivo, acompanhe KPIs individuais e identifique colaboradores em destaque ou atenção.",
+      },
+    ],
+  }),
   component: ColaboradoresPage,
 });
 
@@ -98,11 +112,27 @@ function ColaboradoresPage() {
   const [view, setView] = useState<"table" | "cards">("table");
 
   const latest = useMemo(() => latestSnapshotsByEmployee(snapshots), [snapshots]);
-  const deptById = useMemo(
-    () => new Map(departments.map((d) => [d.id, d.name])),
-    [departments],
-  );
+  const deptById = useMemo(() => new Map(departments.map((d) => [d.id, d.name])), [departments]);
   const empById = useMemo(() => new Map(employees.map((e) => [e.id, e.name])), [employees]);
+
+  const performanceSummary = useMemo(() => {
+    const active = employees.filter((employee) => employee.status === "active");
+    const scores = active.map((employee) => latest.get(employee.id)?.current ?? null);
+    const evaluatedScores = scores.filter((score): score is number => score !== null);
+    const averageScore =
+      evaluatedScores.length > 0
+        ? evaluatedScores.reduce((sum, score) => sum + score, 0) / evaluatedScores.length
+        : null;
+
+    return {
+      activeCount: active.length,
+      evaluatedCount: evaluatedScores.length,
+      averageScore,
+      highPerformanceCount: evaluatedScores.filter((score) => score >= 90).length,
+      attentionCount: evaluatedScores.filter((score) => score < 75).length,
+      withoutScoreCount: scores.length - evaluatedScores.length,
+    };
+  }, [employees, latest]);
 
   const roleOptions = useMemo(() => {
     const set = new Set<string>();
@@ -121,12 +151,7 @@ function ColaboradoresPage() {
     const q = search.trim().toLowerCase();
     return employees.filter((e) => {
       if (q) {
-        const hay = [
-          e.name,
-          e.email ?? "",
-          e.role ?? "",
-          deptById.get(e.department_id ?? "") ?? "",
-        ]
+        const hay = [e.name, e.email ?? "", e.role ?? "", deptById.get(e.department_id ?? "") ?? ""]
           .join(" ")
           .toLowerCase();
         if (!hay.includes(q)) return false;
@@ -192,7 +217,7 @@ function ColaboradoresPage() {
     <div className="space-y-6">
       <PageHeader
         title="Colaboradores"
-        description="Gerencie pessoas, áreas, cargos e acompanhe a evolução individual de performance."
+        description="Gerencie o efetivo, acompanhe KPIs individuais e identifique rapidamente destaques e pontos de atenção."
         actions={
           <>
             <Button variant="outline" size="sm" onClick={() => toast("Disponível em breve.")}>
@@ -201,12 +226,61 @@ function ColaboradoresPage() {
             <Button variant="outline" size="sm" onClick={() => toast("Disponível em breve.")}>
               <Download className="mr-1.5 h-4 w-4" /> Exportar
             </Button>
-            <Button size="sm" onClick={() => { setEditing(null); setOpenForm(true); }}>
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditing(null);
+                setOpenForm(true);
+              }}
+            >
               <Plus className="mr-1.5 h-4 w-4" /> Novo colaborador
             </Button>
           </>
         }
       />
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Efetivo ativo"
+          icon={UserCheck}
+          value={performanceSummary.activeCount}
+          isEmpty={!isLoading && employees.length === 0}
+          emptyMessage="Nenhum colaborador ativo ainda."
+          footer={`${employees.length} colaborador(es) no total.`}
+        />
+        <MetricCard
+          label="Score médio"
+          icon={ClipboardCheck}
+          value={
+            performanceSummary.averageScore === null
+              ? "—"
+              : Math.round(performanceSummary.averageScore)
+          }
+          isEmpty={!isLoading && performanceSummary.evaluatedCount === 0}
+          emptyMessage="Sem KPIs registrados ainda."
+          footer={`${performanceSummary.evaluatedCount} colaborador(es) com KPI recente.`}
+        />
+        <MetricCard
+          label="Alto desempenho"
+          icon={Trophy}
+          value={performanceSummary.highPerformanceCount}
+          isEmpty={!isLoading && performanceSummary.evaluatedCount === 0}
+          emptyMessage="Sem dados suficientes."
+          footer="Score igual ou acima de 90."
+        />
+        <MetricCard
+          label="Precisam de atenção"
+          icon={AlertTriangle}
+          value={performanceSummary.attentionCount}
+          isEmpty={!isLoading && performanceSummary.evaluatedCount === 0}
+          emptyMessage="Sem dados suficientes."
+          footer={
+            performanceSummary.withoutScoreCount > 0
+              ? `${performanceSummary.withoutScoreCount} ativo(s) ainda sem KPI.`
+              : "Score abaixo de 75."
+          }
+        />
+      </div>
 
       <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -242,25 +316,37 @@ function ColaboradoresPage() {
             value={deptFilter}
             onChange={setDeptFilter}
             placeholder="Área"
-            options={[{ value: "all", label: "Todas as áreas" }, ...departments.map((d) => ({ value: d.id, label: d.name }))]}
+            options={[
+              { value: "all", label: "Todas as áreas" },
+              ...departments.map((d) => ({ value: d.id, label: d.name })),
+            ]}
           />
           <FilterSelect
             value={managerFilter}
             onChange={setManagerFilter}
             placeholder="Gestor"
-            options={[{ value: "all", label: "Todos os gestores" }, ...managerOptions.map((m) => ({ value: m.id, label: m.name }))]}
+            options={[
+              { value: "all", label: "Todos os gestores" },
+              ...managerOptions.map((m) => ({ value: m.id, label: m.name })),
+            ]}
           />
           <FilterSelect
             value={roleFilter}
             onChange={setRoleFilter}
             placeholder="Cargo"
-            options={[{ value: "all", label: "Todos os cargos" }, ...roleOptions.map((r) => ({ value: r, label: r }))]}
+            options={[
+              { value: "all", label: "Todos os cargos" },
+              ...roleOptions.map((r) => ({ value: r, label: r })),
+            ]}
           />
           <FilterSelect
             value={seniorityFilter}
             onChange={setSeniorityFilter}
             placeholder="Senioridade"
-            options={[{ value: "all", label: "Todas senioridades" }, ...SENIORITY_OPTIONS.map((s) => ({ value: s, label: s }))]}
+            options={[
+              { value: "all", label: "Todas senioridades" },
+              ...SENIORITY_OPTIONS.map((s) => ({ value: s, label: s })),
+            ]}
           />
           <FilterSelect
             value={statusFilter}
@@ -277,10 +363,10 @@ function ColaboradoresPage() {
           <FilterSelect
             value={scoreFilter}
             onChange={(v) => setScoreFilter(v as ScoreFilter)}
-            placeholder="Faixa de score"
+            placeholder="Faixa de desempenho"
             options={[
               { value: "all", label: "Todos os scores" },
-              { value: "excellent", label: "Em destaque (90-100)" },
+              { value: "excellent", label: "Alto desempenho (90-100)" },
               { value: "good", label: "Bom (75-89)" },
               { value: "attention", label: "Em atenção (60-74)" },
               { value: "risk", label: "Em risco (40-59)" },
@@ -301,7 +387,12 @@ function ColaboradoresPage() {
           title="Nenhum colaborador cadastrado ainda"
           description="Cadastre a primeira pessoa da equipe para começar a acompanhar metas, avaliações e desenvolvimento."
           action={
-            <Button onClick={() => { setEditing(null); setOpenForm(true); }}>
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setOpenForm(true);
+              }}
+            >
               <Plus className="mr-1.5 h-4 w-4" /> Cadastrar primeiro colaborador
             </Button>
           }
@@ -311,7 +402,11 @@ function ColaboradoresPage() {
           icon={Search}
           title="Nenhum colaborador encontrado com os filtros atuais"
           description="Tente ajustar os filtros ou limpar a busca."
-          action={<Button variant="outline" onClick={clearFilters}>Limpar filtros</Button>}
+          action={
+            <Button variant="outline" onClick={clearFilters}>
+              Limpar filtros
+            </Button>
+          }
         />
       ) : view === "table" ? (
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
@@ -338,7 +433,10 @@ function ColaboradoresPage() {
                     managerName={empById.get(e.manager_id ?? "") ?? "—"}
                     score={latest.get(e.id)?.current ?? null}
                     previous={latest.get(e.id)?.previous ?? null}
-                    onEdit={() => { setEditing(e); setOpenForm(true); }}
+                    onEdit={() => {
+                      setEditing(e);
+                      setOpenForm(true);
+                    }}
                     onDeactivate={() => setToDeactivate(e)}
                   />
                 ))}
@@ -348,7 +446,9 @@ function ColaboradoresPage() {
           {hasAnyFilter && (
             <div className="border-t border-border px-4 py-2 text-xs text-muted-foreground">
               Mostrando {filtered.length} de {employees.length} colaboradores ·{" "}
-              <button onClick={clearFilters} className="underline">Limpar filtros</button>
+              <button onClick={clearFilters} className="underline">
+                Limpar filtros
+              </button>
             </div>
           )}
         </div>
@@ -365,19 +465,15 @@ function ColaboradoresPage() {
         </div>
       )}
 
-      <EmployeeFormDialog
-        open={openForm}
-        onOpenChange={setOpenForm}
-        employee={editing}
-      />
+      <EmployeeFormDialog open={openForm} onOpenChange={setOpenForm} employee={editing} />
 
       <AlertDialog open={!!toDeactivate} onOpenChange={(o) => !o && setToDeactivate(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Desativar colaborador?</AlertDialogTitle>
             <AlertDialogDescription>
-              Ao desativar {toDeactivate?.name}, ele não aparecerá mais como ativo
-              nos cálculos principais, mas o histórico será preservado. Deseja continuar?
+              Ao desativar {toDeactivate?.name}, ele não aparecerá mais como ativo nos cálculos
+              principais, mas o histórico será preservado. Deseja continuar?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -515,7 +611,7 @@ function EmployeeTableRow({
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => toast("Disponível em breve.")}>
-              <ClipboardCheck className="mr-2 h-4 w-4" /> Registrar avaliação
+              <ClipboardCheck className="mr-2 h-4 w-4" /> Registrar KPI
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => toast("Disponível em breve.")}>
               <MessageSquare className="mr-2 h-4 w-4" /> Registrar feedback
@@ -524,7 +620,10 @@ function EmployeeTableRow({
               <CalendarPlus className="mr-2 h-4 w-4" /> Agendar 1:1
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onDeactivate} className="text-status-risk focus:text-status-risk">
+            <DropdownMenuItem
+              onClick={onDeactivate}
+              className="text-status-risk focus:text-status-risk"
+            >
               <UserMinus className="mr-2 h-4 w-4" /> Desativar
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -584,5 +683,3 @@ function EmployeeCard({
     </Link>
   );
 }
-
-export { Users as _Users, ArrowUpRight as _A1 };
