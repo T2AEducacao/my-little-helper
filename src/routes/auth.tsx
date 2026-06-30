@@ -97,6 +97,15 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", full_name: "", company_name: "" });
 
+  const goAfterLogin = async () => {
+    const role = await getCurrentUserRole();
+    if (role === "employee") {
+      navigate({ to: "/funcionario", replace: true });
+    } else {
+      navigate({ to: "/", replace: true });
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     const authError = readAuthErrorFromUrl();
@@ -104,8 +113,8 @@ function AuthPage() {
 
     lovableCloudAuth
       .getVerifiedSession({ ensureProfile: true })
-      .then((auth) => {
-        if (!cancelled && auth) navigate({ to: "/", replace: true });
+      .then(async (auth) => {
+        if (!cancelled && auth) await goAfterLogin();
       })
       .catch((err) => console.error("Lovable Cloud session check error", err));
 
@@ -113,8 +122,8 @@ function AuthPage() {
       if (!session) return;
       lovableCloudAuth
         .getVerifiedSession({ ensureProfile: true })
-        .then((auth) => {
-          if (!cancelled && auth) navigate({ to: "/", replace: true });
+        .then(async (auth) => {
+          if (!cancelled && auth) await goAfterLogin();
         })
         .catch((err) => console.error("Lovable Cloud auth state error", err));
     });
@@ -124,6 +133,7 @@ function AuthPage() {
       if (errorTimer) window.clearTimeout(errorTimer);
       unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   const submit = async (e: React.FormEvent) => {
