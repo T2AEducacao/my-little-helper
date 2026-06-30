@@ -166,13 +166,28 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.55 0.16 262);
 
+  --status-excellent: oklch(0.82 0.18 152);
+  --status-excellent-foreground: oklch(0.95 0.05 152);
   --status-excellent-soft: oklch(0.3 0.08 152);
+  --status-good: oklch(0.82 0.16 162);
+  --status-good-foreground: oklch(0.95 0.05 162);
   --status-good-soft: oklch(0.3 0.07 162);
+  --status-attention: oklch(0.86 0.17 85);
+  --status-attention-foreground: oklch(0.95 0.08 85);
   --status-attention-soft: oklch(0.32 0.1 80);
+  --status-risk: oklch(0.82 0.17 45);
+  --status-risk-foreground: oklch(0.95 0.07 45);
   --status-risk-soft: oklch(0.32 0.1 45);
+  --status-critical: oklch(0.78 0.2 27);
+  --status-critical-foreground: oklch(0.95 0.06 27);
   --status-critical-soft: oklch(0.32 0.1 27);
+  --status-info: oklch(0.78 0.15 250);
+  --status-info-foreground: oklch(0.95 0.05 250);
   --status-info-soft: oklch(0.3 0.08 250);
+  --status-neutral: oklch(0.78 0.02 257);
+  --status-neutral-foreground: oklch(0.92 0.005 247);
   --status-neutral-soft: oklch(0.27 0.02 260);
+
 }
 
 @layer base {
