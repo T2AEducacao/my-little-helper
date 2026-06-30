@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ListChecks,
+  Plus,
   Target,
   TrendingUp,
 } from "lucide-react";
@@ -26,11 +27,13 @@ import {
 } from "@/features/performance/workspace-data";
 import { useEmployees } from "@/lib/php-data";
 import type { ScoreStatus } from "@/components/php/types";
+import { CreateGoalDialog } from "@/components/php/CreateGoalDialog";
+import { useLocalGoals, type LocalGoal } from "@/features/goals/local-goals-store";
 
 export const Route = createFileRoute("/_app/metas")({
   head: () => ({
     meta: [
-      { title: "Metas e KPIs · Performativo" },
+      { title: "Metas · Performativo" },
       {
         name: "description",
         content: "Leia em segundos o que está em risco, perto do prazo, no caminho e concluído.",
