@@ -813,6 +813,13 @@ function EmployeeTableRow({
             <DropdownMenuItem onClick={onEdit}>
               <Pencil className="mr-2 h-4 w-4" /> Editar
             </DropdownMenuItem>
+            <EmployeeAccessButton
+              variant="menu-item"
+              employeeId={employee.id}
+              employeeName={employee.name}
+              hasAccess={!!employee.profile_id}
+              defaultEmail={employee.email}
+            />
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => toast("Disponível em breve.")}>
               <ClipboardCheck className="mr-2 h-4 w-4" /> Registrar KPI
