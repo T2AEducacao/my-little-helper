@@ -174,12 +174,17 @@ function PriorityQueueItem({ alert, employee }: { alert: AlertRow; employee?: Em
   const category = alert.employee_id ? "Colaborador" : "Gestão";
   const responsible =
     employee?.name ?? (alert.employee_id ? "Colaborador não encontrado" : "Gestão");
-  const actionLabel = employee ? "Ver colaborador" : "Ver contexto";
+  const destination = resolveActionDestination(alert, employee);
 
   return (
     <article className="py-4 first:pt-0 last:pb-0">
       <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
-        <div className="min-w-0">
+        <Link
+          to={destination.to}
+          params={destination.params}
+          search={destination.search}
+          className="min-w-0 rounded-xl outline-none transition hover:bg-muted/25 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
             <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
@@ -210,26 +215,116 @@ function PriorityQueueItem({ alert, employee }: { alert: AlertRow; employee?: Em
               value={alert.suggested_action ?? "Analisar contexto e definir próximo passo."}
             />
           </div>
-        </div>
+        </Link>
 
         <div className="flex shrink-0 lg:justify-end">
-          {employee ? (
-            <Button asChild size="sm">
-              <Link to="/colaboradores/$id" params={{ id: employee.id }}>
-                {actionLabel}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          ) : (
-            <Button size="sm" variant="outline">
-              {actionLabel}
+          <Button asChild size="sm" variant={employee ? "default" : "outline"}>
+            <Link to={destination.to} params={destination.params} search={destination.search}>
+              {destination.label}
               <ArrowRight className="h-4 w-4" />
-            </Button>
-          )}
+            </Link>
+          </Button>
         </div>
       </div>
     </article>
   );
+}
+
+type ActionDestination = {
+  to: "/colaboradores/$id" | "/metas" | "/avaliacoes" | "/feedbacks" | "/alertas";
+  params?: { id: string };
+  search?: { tab?: string };
+  label: string;
+};
+
+function resolveActionDestination(alert: AlertRow, employee?: EmployeeRow): ActionDestination {
+  const text = normalizeActionText(
+    [alert.title, alert.explanation, alert.suggested_action].filter(Boolean).join(" "),
+  );
+
+  const action = getActionIntent(text);
+  if (employee) {
+    return {
+      to: "/colaboradores/$id",
+      params: { id: employee.id },
+      search: action.tab ? { tab: action.tab } : undefined,
+      label: action.employeeLabel,
+    };
+  }
+
+  if (action.fallbackRoute) {
+    return {
+      to: action.fallbackRoute,
+      label: action.fallbackLabel,
+    };
+  }
+
+  return {
+    to: "/alertas",
+    label: "Ver contexto",
+  };
+}
+
+function getActionIntent(text: string): {
+  tab?: string;
+  employeeLabel: string;
+  fallbackRoute?: "/metas" | "/avaliacoes" | "/feedbacks";
+  fallbackLabel: string;
+} {
+  if (includesAny(text, ["feedback", "conversa", "alinhamento", "reconhecimento", "elogio"])) {
+    return {
+      tab: "feedbacks",
+      employeeLabel: "Registrar feedback",
+      fallbackRoute: "/feedbacks",
+      fallbackLabel: "Ver feedbacks",
+    };
+  }
+  if (includesAny(text, ["avaliacao", "avaliacoes", "score", "ciclo"])) {
+    return {
+      tab: "reviews",
+      employeeLabel: "Abrir avaliação",
+      fallbackRoute: "/avaliacoes",
+      fallbackLabel: "Ver avaliações",
+    };
+  }
+  if (includesAny(text, ["meta", "metas", "kpi", "indicador", "indicadores"])) {
+    return {
+      tab: "goals",
+      employeeLabel: "Ver metas",
+      fallbackRoute: "/metas",
+      fallbackLabel: "Ver metas",
+    };
+  }
+  if (includesAny(text, ["desenvolvimento", "pdi", "plano"])) {
+    return {
+      tab: "development",
+      employeeLabel: "Ver desenvolvimento",
+      fallbackLabel: "Ver contexto",
+    };
+  }
+  if (includesAny(text, ["1:1", "reuniao", "reunioes", "one on one"])) {
+    return {
+      tab: "oneonone",
+      employeeLabel: "Agendar 1:1",
+      fallbackLabel: "Ver contexto",
+    };
+  }
+
+  return {
+    employeeLabel: "Ver colaborador",
+    fallbackLabel: "Ver contexto",
+  };
+}
+
+function includesAny(text: string, terms: string[]): boolean {
+  return terms.some((term) => text.includes(term));
+}
+
+function normalizeActionText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 function ActionDetail({ label, value }: { label: string; value: string }) {

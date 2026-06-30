@@ -1,10 +1,5 @@
 import { useMemo, useState } from "react";
-import {
-  createFileRoute,
-  Link,
-  notFound,
-  useParams,
-} from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate, useParams } from "@tanstack/react-router";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -20,7 +15,6 @@ import {
   AlertTriangle,
   TrendingUp,
   TrendingDown,
-  Minus,
   CalendarClock,
   Users,
   MapPin,
@@ -59,7 +53,23 @@ import {
   STATUS_LABEL,
 } from "@/lib/php-data";
 
+const EMPLOYEE_PROFILE_TABS = [
+  "overview",
+  "goals",
+  "indicators",
+  "reviews",
+  "feedbacks",
+  "oneonone",
+  "development",
+  "history",
+] as const;
+
+type EmployeeProfileTab = (typeof EMPLOYEE_PROFILE_TABS)[number];
+
 export const Route = createFileRoute("/_app/colaboradores/$id")({
+  validateSearch: (search): { tab?: EmployeeProfileTab } => ({
+    tab: parseEmployeeProfileTab(search.tab),
+  }),
   component: EmployeeProfilePage,
   notFoundComponent: () => (
     <div className="mx-auto max-w-md py-16 text-center">
@@ -68,7 +78,9 @@ export const Route = createFileRoute("/_app/colaboradores/$id")({
         Este colaborador pode ter sido removido ou você não tem acesso.
       </p>
       <Button asChild className="mt-4" variant="outline">
-        <Link to="/colaboradores"><ArrowLeft className="mr-1.5 h-4 w-4" /> Voltar para colaboradores</Link>
+        <Link to="/colaboradores">
+          <ArrowLeft className="mr-1.5 h-4 w-4" /> Voltar para colaboradores
+        </Link>
       </Button>
     </div>
   ),
@@ -81,6 +93,8 @@ export const Route = createFileRoute("/_app/colaboradores/$id")({
 
 function EmployeeProfilePage() {
   const { id } = useParams({ from: "/_app/colaboradores/$id" });
+  const { tab } = Route.useSearch();
+  const navigate = useNavigate({ from: "/colaboradores/$id" });
   const { data: employee, isLoading } = useEmployee(id);
   const { data: employees = [] } = useEmployees();
   const { data: departments = [] } = useDepartments();
@@ -118,8 +132,15 @@ function EmployeeProfilePage() {
   return (
     <div className="space-y-6">
       <div>
-        <Button asChild variant="ghost" size="sm" className="-ml-2 h-8 text-xs text-muted-foreground">
-          <Link to="/colaboradores"><ArrowLeft className="mr-1 h-3.5 w-3.5" /> Colaboradores</Link>
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="-ml-2 h-8 text-xs text-muted-foreground"
+        >
+          <Link to="/colaboradores">
+            <ArrowLeft className="mr-1 h-3.5 w-3.5" /> Colaboradores
+          </Link>
         </Button>
       </div>
 
@@ -132,7 +153,9 @@ function EmployeeProfilePage() {
             </Avatar>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-semibold tracking-tight text-foreground">{employee.name}</h1>
+                <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                  {employee.name}
+                </h1>
                 <StatusBadge tone={employee.status === "active" ? "info" : "neutral"}>
                   {STATUS_LABEL[employee.status]}
                 </StatusBadge>
@@ -187,10 +210,10 @@ function EmployeeProfilePage() {
               ? diff === null
                 ? "Sem comparativo anterior."
                 : diff > 0
-                ? `+${diff.toFixed(1)} pontos vs. período anterior.`
-                : diff < 0
-                ? `${diff.toFixed(1)} pontos vs. período anterior.`
-                : "Estável em relação ao período anterior."
+                  ? `+${diff.toFixed(1)} pontos vs. período anterior.`
+                  : diff < 0
+                    ? `${diff.toFixed(1)} pontos vs. período anterior.`
+                    : "Estável em relação ao período anterior."
               : undefined
           }
           emptyMessage="Ainda não há score calculado para este colaborador."
@@ -205,7 +228,9 @@ function EmployeeProfilePage() {
           icon={ClipboardCheck}
           label="Última avaliação"
           value={latest ? formatDate(latest.snapshot_date) : "—"}
-          hint={latest ? "Snapshot mais recente do colaborador." : "Nenhuma avaliação registrada ainda."}
+          hint={
+            latest ? "Snapshot mais recente do colaborador." : "Nenhuma avaliação registrada ainda."
+          }
         />
         <MetricCard
           icon={MessageSquare}
@@ -221,17 +246,45 @@ function EmployeeProfilePage() {
         />
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs
+        value={tab ?? "overview"}
+        onValueChange={(value) =>
+          navigate({
+            params: { id },
+            search: {
+              tab: value === "overview" ? undefined : parseEmployeeProfileTab(value),
+            },
+            replace: true,
+          })
+        }
+        className="w-full"
+      >
         <div className="-mx-1 overflow-x-auto">
           <TabsList className="inline-flex w-max">
-            <TabsTrigger value="overview"><Sparkles className="mr-1.5 h-4 w-4" /> Visão geral</TabsTrigger>
-            <TabsTrigger value="goals"><Target className="mr-1.5 h-4 w-4" /> Metas</TabsTrigger>
-            <TabsTrigger value="indicators"><LineChartIcon className="mr-1.5 h-4 w-4" /> Indicadores</TabsTrigger>
-            <TabsTrigger value="reviews"><ClipboardCheck className="mr-1.5 h-4 w-4" /> Avaliações</TabsTrigger>
-            <TabsTrigger value="feedbacks"><MessageSquare className="mr-1.5 h-4 w-4" /> Feedbacks</TabsTrigger>
-            <TabsTrigger value="oneonone"><CalendarPlus className="mr-1.5 h-4 w-4" /> Reuniões 1:1</TabsTrigger>
-            <TabsTrigger value="development"><Activity className="mr-1.5 h-4 w-4" /> Desenvolvimento</TabsTrigger>
-            <TabsTrigger value="history"><History className="mr-1.5 h-4 w-4" /> Histórico</TabsTrigger>
+            <TabsTrigger value="overview">
+              <Sparkles className="mr-1.5 h-4 w-4" /> Visão geral
+            </TabsTrigger>
+            <TabsTrigger value="goals">
+              <Target className="mr-1.5 h-4 w-4" /> Metas
+            </TabsTrigger>
+            <TabsTrigger value="indicators">
+              <LineChartIcon className="mr-1.5 h-4 w-4" /> Indicadores
+            </TabsTrigger>
+            <TabsTrigger value="reviews">
+              <ClipboardCheck className="mr-1.5 h-4 w-4" /> Avaliações
+            </TabsTrigger>
+            <TabsTrigger value="feedbacks">
+              <MessageSquare className="mr-1.5 h-4 w-4" /> Feedbacks
+            </TabsTrigger>
+            <TabsTrigger value="oneonone">
+              <CalendarPlus className="mr-1.5 h-4 w-4" /> Reuniões 1:1
+            </TabsTrigger>
+            <TabsTrigger value="development">
+              <Activity className="mr-1.5 h-4 w-4" /> Desenvolvimento
+            </TabsTrigger>
+            <TabsTrigger value="history">
+              <History className="mr-1.5 h-4 w-4" /> Histórico
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -253,7 +306,9 @@ function EmployeeProfilePage() {
 
               <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <SubBlock title="Pontos fortes">
-                  <p className="text-xs text-muted-foreground">Nenhum ponto forte registrado ainda.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Nenhum ponto forte registrado ainda.
+                  </p>
                 </SubBlock>
                 <SubBlock title="Pontos de atenção">
                   {openAlerts.length === 0 ? (
@@ -274,10 +329,7 @@ function EmployeeProfilePage() {
               </div>
             </SectionCard>
 
-            <SectionCard
-              title="Composição do score"
-              description="Blocos que formam a avaliação."
-            >
+            <SectionCard title="Composição do score" description="Blocos que formam a avaliação.">
               <ScoreBreakdown snapshot={latest} />
             </SectionCard>
           </div>
@@ -302,7 +354,10 @@ function EmployeeProfilePage() {
           </SectionCard>
 
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            <SectionCard title="Alertas vinculados" description="Pontos abertos para este colaborador.">
+            <SectionCard
+              title="Alertas vinculados"
+              description="Pontos abertos para este colaborador."
+            >
               {openAlerts.length === 0 ? (
                 <EmptyState
                   icon={AlertTriangle}
@@ -323,7 +378,10 @@ function EmployeeProfilePage() {
                 </div>
               )}
             </SectionCard>
-            <SectionCard title="Ações recomendadas" description="Sugestões a partir dos dados atuais.">
+            <SectionCard
+              title="Ações recomendadas"
+              description="Sugestões a partir dos dados atuais."
+            >
               <Recommendations
                 hasAnySnapshot={snapshots.length > 0}
                 latestScore={latest?.overall_score ?? null}
@@ -393,7 +451,15 @@ function EmployeeProfilePage() {
   );
 }
 
-function Detail({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
+function Detail({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="flex items-center gap-1.5">
       <Icon className="h-3.5 w-3.5 text-muted-foreground" />
@@ -415,7 +481,13 @@ function SubBlock({ title, children }: { title: string; children: React.ReactNod
 function ScoreBreakdown({
   snapshot,
 }: {
-  snapshot: { delivery_score: number | null; quality_score: number | null; goals_score: number | null; behavior_score: number | null; evolution_score: number | null } | null;
+  snapshot: {
+    delivery_score: number | null;
+    quality_score: number | null;
+    goals_score: number | null;
+    behavior_score: number | null;
+    evolution_score: number | null;
+  } | null;
 }) {
   const blocks = [
     { label: "Entregas", value: snapshot?.delivery_score ?? null },
@@ -430,8 +502,8 @@ function ScoreBreakdown({
     <div className="space-y-3">
       {allEmpty && (
         <p className="text-xs text-muted-foreground">
-          Ainda não há score calculado para este colaborador. O score será gerado a partir de
-          metas, avaliações e indicadores registrados.
+          Ainda não há score calculado para este colaborador. O score será gerado a partir de metas,
+          avaliações e indicadores registrados.
         </p>
       )}
       <div className="space-y-2.5">
@@ -456,14 +528,14 @@ function ScoreBreakdown({
                     (status === "excellent"
                       ? "bg-status-excellent"
                       : status === "good"
-                      ? "bg-status-good"
-                      : status === "attention"
-                      ? "bg-status-attention"
-                      : status === "risk"
-                      ? "bg-status-risk"
-                      : status === "critical"
-                      ? "bg-status-critical"
-                      : "bg-muted-foreground/30")
+                        ? "bg-status-good"
+                        : status === "attention"
+                          ? "bg-status-attention"
+                          : status === "risk"
+                            ? "bg-status-risk"
+                            : status === "critical"
+                              ? "bg-status-critical"
+                              : "bg-muted-foreground/30")
                   }
                   style={{ width: `${b.value ?? 0}%` }}
                 />
@@ -480,7 +552,12 @@ function EvolutionChart({
   snapshots,
   rangeDays,
 }: {
-  snapshots: { snapshot_date: string; overall_score: number | null; employee_id: string; id: string }[];
+  snapshots: {
+    snapshot_date: string;
+    overall_score: number | null;
+    employee_id: string;
+    id: string;
+  }[];
   rangeDays: number;
 }) {
   const series = useMemo(
@@ -519,8 +596,18 @@ function EvolutionChart({
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={series} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-          <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
-          <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} domain={[0, 100]} tickLine={false} />
+          <XAxis
+            dataKey="date"
+            stroke="hsl(var(--muted-foreground))"
+            fontSize={11}
+            tickLine={false}
+          />
+          <YAxis
+            stroke="hsl(var(--muted-foreground))"
+            fontSize={11}
+            domain={[0, 100]}
+            tickLine={false}
+          />
           <ReTooltip
             contentStyle={{
               background: "hsl(var(--popover))",
@@ -529,7 +616,13 @@ function EvolutionChart({
               fontSize: 12,
             }}
           />
-          <Line type="monotone" dataKey="score" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
+          <Line
+            type="monotone"
+            dataKey="score"
+            stroke="hsl(var(--primary))"
+            strokeWidth={2}
+            dot={{ r: 3 }}
+          />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -545,27 +638,34 @@ function Recommendations({
   latestScore: number | null;
   previousScore: number | null;
 }) {
-  const recs: { icon: React.ComponentType<{ className?: string }>; title: string; description: string }[] = [];
+  const recs: {
+    icon: React.ComponentType<{ className?: string }>;
+    title: string;
+    description: string;
+  }[] = [];
 
   if (!hasAnySnapshot) {
     recs.push({
       icon: ClipboardCheck,
       title: "Registrar a primeira avaliação",
-      description: "Comece um ciclo de avaliação para estabelecer um ponto de partida de performance.",
+      description:
+        "Comece um ciclo de avaliação para estabelecer um ponto de partida de performance.",
     });
   }
   if (latestScore !== null && previousScore !== null && latestScore - previousScore <= -5) {
     recs.push({
       icon: TrendingDown,
       title: "Agendar uma reunião 1:1",
-      description: "O score apresentou queda recente. Uma conversa estruturada pode ajudar a entender o contexto.",
+      description:
+        "O score apresentou queda recente. Uma conversa estruturada pode ajudar a entender o contexto.",
     });
   }
   if (latestScore !== null && latestScore >= 85) {
     recs.push({
       icon: TrendingUp,
       title: "Reconhecer publicamente",
-      description: "Performance consistente alta — considere registrar um feedback de reconhecimento.",
+      description:
+        "Performance consistente alta — considere registrar um feedback de reconhecimento.",
     });
   }
   recs.push({
@@ -577,7 +677,10 @@ function Recommendations({
   return (
     <ul className="space-y-3">
       {recs.map((r, i) => (
-        <li key={i} className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
+        <li
+          key={i}
+          className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3"
+        >
           <span className="mt-0.5 flex h-7 w-7 items-center justify-center rounded-full bg-background text-foreground">
             <r.icon className="h-3.5 w-3.5" />
           </span>
@@ -592,21 +695,21 @@ function Recommendations({
 }
 
 function ComingSoonTab({ title, description }: { title: string; description: string }) {
-  return (
-    <EmptyState icon={Sparkles} title={title} description={description} />
-  );
+  return <EmptyState icon={Sparkles} title={title} description={description} />;
 }
 
-function Timeline({ items }: { items: { id: string; action: string | null; description: string | null; created_at: string }[] }) {
+function Timeline({
+  items,
+}: {
+  items: { id: string; action: string | null; description: string | null; created_at: string }[];
+}) {
   return (
     <ol className="relative space-y-4 border-l border-border pl-5">
       {items.map((it) => (
         <li key={it.id} className="relative">
           <span className="absolute -left-[27px] top-1 flex h-3 w-3 items-center justify-center rounded-full border-2 border-background bg-foreground/70" />
           <div className="text-xs text-muted-foreground">{formatDateTime(it.created_at)}</div>
-          <div className="mt-0.5 text-sm font-medium text-foreground">
-            {humanAction(it.action)}
-          </div>
+          <div className="mt-0.5 text-sm font-medium text-foreground">{humanAction(it.action)}</div>
           {it.description && (
             <p className="mt-0.5 text-xs text-muted-foreground">{it.description}</p>
           )}
@@ -618,22 +721,44 @@ function Timeline({ items }: { items: { id: string; action: string | null; descr
 
 function humanAction(a: string | null): string {
   switch (a) {
-    case "employee.created": return "Cadastro criado";
-    case "employee.updated": return "Dados atualizados";
-    case "employee.deactivated": return "Colaborador desativado";
-    default: return a ?? "Evento";
+    case "employee.created":
+      return "Cadastro criado";
+    case "employee.updated":
+      return "Dados atualizados";
+    case "employee.deactivated":
+      return "Colaborador desativado";
+    default:
+      return a ?? "Evento";
   }
 }
 
 function formatDate(s: string): string {
   try {
-    return new Date(s).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
-  } catch { return s; }
+    return new Date(s).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return s;
+  }
 }
 function formatDateTime(s: string): string {
   try {
-    return new Date(s).toLocaleString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
-  } catch { return s; }
+    return new Date(s).toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return s;
+  }
 }
 
-export { Minus as _M };
+function parseEmployeeProfileTab(value: unknown): EmployeeProfileTab | undefined {
+  return typeof value === "string" && EMPLOYEE_PROFILE_TABS.includes(value as EmployeeProfileTab)
+    ? (value as EmployeeProfileTab)
+    : undefined;
+}
