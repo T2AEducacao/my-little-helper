@@ -22,6 +22,7 @@ import { Route as AppColaboradoresRouteImport } from './routes/_app.colaboradore
 import { Route as AppAvaliacoesRouteImport } from './routes/_app.avaliacoes'
 import { Route as AppAnalisesRouteImport } from './routes/_app.analises'
 import { Route as AppAlertasRouteImport } from './routes/_app.alertas'
+import { Route as AppConfiguracoesEmBreveRouteImport } from './routes/_app.configuracoes.em-breve'
 import { Route as AppColaboradoresIdRouteImport } from './routes/_app.colaboradores.$id'
 
 const AuthRoute = AuthRouteImport.update({
@@ -88,6 +89,11 @@ const AppAlertasRoute = AppAlertasRouteImport.update({
   path: '/alertas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfiguracoesEmBreveRoute = AppConfiguracoesEmBreveRouteImport.update({
+  id: '/em-breve',
+  path: '/em-breve',
+  getParentRoute: () => AppConfiguracoesRoute,
+} as any)
 const AppColaboradoresIdRoute = AppColaboradoresIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -101,13 +107,14 @@ export interface FileRoutesByFullPath {
   '/analises': typeof AppAnalisesRoute
   '/avaliacoes': typeof AppAvaliacoesRoute
   '/colaboradores': typeof AppColaboradoresRouteWithChildren
-  '/configuracoes': typeof AppConfiguracoesRoute
+  '/configuracoes': typeof AppConfiguracoesRouteWithChildren
   '/desenvolvimento': typeof AppDesenvolvimentoRoute
   '/feedbacks': typeof AppFeedbacksRoute
   '/insights': typeof AppInsightsRoute
   '/metas': typeof AppMetasRoute
   '/reunioes': typeof AppReunioesRoute
   '/colaboradores/$id': typeof AppColaboradoresIdRoute
+  '/configuracoes/em-breve': typeof AppConfiguracoesEmBreveRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -115,7 +122,7 @@ export interface FileRoutesByTo {
   '/analises': typeof AppAnalisesRoute
   '/avaliacoes': typeof AppAvaliacoesRoute
   '/colaboradores': typeof AppColaboradoresRouteWithChildren
-  '/configuracoes': typeof AppConfiguracoesRoute
+  '/configuracoes': typeof AppConfiguracoesRouteWithChildren
   '/desenvolvimento': typeof AppDesenvolvimentoRoute
   '/feedbacks': typeof AppFeedbacksRoute
   '/insights': typeof AppInsightsRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/reunioes': typeof AppReunioesRoute
   '/': typeof AppIndexRoute
   '/colaboradores/$id': typeof AppColaboradoresIdRoute
+  '/configuracoes/em-breve': typeof AppConfiguracoesEmBreveRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -132,7 +140,7 @@ export interface FileRoutesById {
   '/_app/analises': typeof AppAnalisesRoute
   '/_app/avaliacoes': typeof AppAvaliacoesRoute
   '/_app/colaboradores': typeof AppColaboradoresRouteWithChildren
-  '/_app/configuracoes': typeof AppConfiguracoesRoute
+  '/_app/configuracoes': typeof AppConfiguracoesRouteWithChildren
   '/_app/desenvolvimento': typeof AppDesenvolvimentoRoute
   '/_app/feedbacks': typeof AppFeedbacksRoute
   '/_app/insights': typeof AppInsightsRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/_app/reunioes': typeof AppReunioesRoute
   '/_app/': typeof AppIndexRoute
   '/_app/colaboradores/$id': typeof AppColaboradoresIdRoute
+  '/_app/configuracoes/em-breve': typeof AppConfiguracoesEmBreveRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
     | '/metas'
     | '/reunioes'
     | '/colaboradores/$id'
+    | '/configuracoes/em-breve'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/reunioes'
     | '/'
     | '/colaboradores/$id'
+    | '/configuracoes/em-breve'
   id:
     | '__root__'
     | '/_app'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/_app/reunioes'
     | '/_app/'
     | '/_app/colaboradores/$id'
+    | '/_app/configuracoes/em-breve'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -288,6 +300,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAlertasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/configuracoes/em-breve': {
+      id: '/_app/configuracoes/em-breve'
+      path: '/em-breve'
+      fullPath: '/configuracoes/em-breve'
+      preLoaderRoute: typeof AppConfiguracoesEmBreveRouteImport
+      parentRoute: typeof AppConfiguracoesRoute
+    }
     '/_app/colaboradores/$id': {
       id: '/_app/colaboradores/$id'
       path: '/$id'
@@ -309,12 +328,23 @@ const AppColaboradoresRouteChildren: AppColaboradoresRouteChildren = {
 const AppColaboradoresRouteWithChildren =
   AppColaboradoresRoute._addFileChildren(AppColaboradoresRouteChildren)
 
+interface AppConfiguracoesRouteChildren {
+  AppConfiguracoesEmBreveRoute: typeof AppConfiguracoesEmBreveRoute
+}
+
+const AppConfiguracoesRouteChildren: AppConfiguracoesRouteChildren = {
+  AppConfiguracoesEmBreveRoute: AppConfiguracoesEmBreveRoute,
+}
+
+const AppConfiguracoesRouteWithChildren =
+  AppConfiguracoesRoute._addFileChildren(AppConfiguracoesRouteChildren)
+
 interface AppRouteChildren {
   AppAlertasRoute: typeof AppAlertasRoute
   AppAnalisesRoute: typeof AppAnalisesRoute
   AppAvaliacoesRoute: typeof AppAvaliacoesRoute
   AppColaboradoresRoute: typeof AppColaboradoresRouteWithChildren
-  AppConfiguracoesRoute: typeof AppConfiguracoesRoute
+  AppConfiguracoesRoute: typeof AppConfiguracoesRouteWithChildren
   AppDesenvolvimentoRoute: typeof AppDesenvolvimentoRoute
   AppFeedbacksRoute: typeof AppFeedbacksRoute
   AppInsightsRoute: typeof AppInsightsRoute
@@ -328,7 +358,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAnalisesRoute: AppAnalisesRoute,
   AppAvaliacoesRoute: AppAvaliacoesRoute,
   AppColaboradoresRoute: AppColaboradoresRouteWithChildren,
-  AppConfiguracoesRoute: AppConfiguracoesRoute,
+  AppConfiguracoesRoute: AppConfiguracoesRouteWithChildren,
   AppDesenvolvimentoRoute: AppDesenvolvimentoRoute,
   AppFeedbacksRoute: AppFeedbacksRoute,
   AppInsightsRoute: AppInsightsRoute,
