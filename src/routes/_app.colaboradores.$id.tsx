@@ -239,6 +239,12 @@ function EmployeeProfilePage() {
               <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
                 <Pencil className="h-4 w-4" /> Editar
               </Button>
+              <EmployeeAccessButton
+                employeeId={employee.id}
+                employeeName={employee.name}
+                hasAccess={!!employee.profile_id}
+                defaultEmail={employee.email}
+              />
             </div>
           </div>
         </div>
