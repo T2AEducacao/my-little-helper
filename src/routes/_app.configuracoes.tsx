@@ -1,211 +1,199 @@
 import { PageHeader } from "@/components/php/PageHeader";
 import { SectionCard } from "@/components/php/SectionCard";
-import { StatusBadge } from "@/components/php/StatusBadge";
+import { EmptyState } from "@/components/php/EmptyState";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Link, createFileRoute } from "@tanstack/react-router";
-import {
-  ArrowDownUp,
-  Briefcase,
-  Building2,
-  ChevronRight,
-  FolderTree,
-  Gauge,
-  History,
-  Lock,
-  MapPin,
-  MessageSquare,
-  Palette,
-  Plug,
-  Target,
-  UserCog,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
+import { useEmployees, initials } from "@/lib/php-data";
+import { supabase } from "@/integrations/supabase/client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { Languages, Loader2, UserCog } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
-type ItemStatus = "em-desenvolvimento" | "planejado";
+type Lang = "pt-BR" | "en";
+const LANG_KEY = "php.language";
 
-interface SettingsItemData {
-  icon: LucideIcon;
-  name: string;
-  description: string;
-  status: ItemStatus;
+function useLanguage(): [Lang, (l: Lang) => void] {
+  const [lang, setLang] = useState<Lang>("pt-BR");
+  useEffect(() => {
+    const stored = (typeof window !== "undefined" && window.localStorage.getItem(LANG_KEY)) as Lang | null;
+    if (stored === "pt-BR" || stored === "en") setLang(stored);
+  }, []);
+  const update = (l: Lang) => {
+    setLang(l);
+    if (typeof window !== "undefined") window.localStorage.setItem(LANG_KEY, l);
+  };
+  return [lang, update];
 }
 
-interface SettingsGroup {
-  title: string;
-  description: string;
-  items: SettingsItemData[];
-}
-
-const GROUPS: SettingsGroup[] = [
-  {
-    title: "Empresa",
-    description: "Informações institucionais e identidade visual.",
-    items: [
-      {
-        icon: Building2,
-        name: "Dados da empresa",
-        description: "Razão social, CNPJ e informações de contato.",
-        status: "em-desenvolvimento",
-      },
-      {
-        icon: Palette,
-        name: "Identidade visual",
-        description: "Logo e cores aplicadas ao sistema.",
-        status: "planejado",
-      },
-    ],
-  },
-  {
-    title: "Organização",
-    description: "Estrutura organizacional da operação.",
-    items: [
-      {
-        icon: FolderTree,
-        name: "Departamentos",
-        description: "Organize as áreas e equipes da empresa.",
-        status: "em-desenvolvimento",
-      },
-      {
-        icon: Briefcase,
-        name: "Cargos",
-        description: "Cargos, senioridades e trilhas.",
-        status: "planejado",
-      },
-      {
-        icon: MapPin,
-        name: "Unidades",
-        description: "Filiais, escritórios e localidades.",
-        status: "planejado",
-      },
-    ],
-  },
-  {
-    title: "Pessoas",
-    description: "Usuários, gestores e controle de acesso.",
-    items: [
-      {
-        icon: Users,
-        name: "Usuários",
-        description: "Gerencie quem tem acesso ao sistema.",
-        status: "em-desenvolvimento",
-      },
-      {
-        icon: UserCog,
-        name: "Gestores",
-        description: "Defina líderes e suas equipes diretas.",
-        status: "planejado",
-      },
-      {
-        icon: Lock,
-        name: "Permissões",
-        description: "Controle os níveis de acesso por papel.",
-        status: "planejado",
-      },
-    ],
-  },
-  {
-    title: "Performance",
-    description: "Parâmetros de avaliação e acompanhamento.",
-    items: [
-      {
-        icon: Gauge,
-        name: "Escala de score",
-        description: "Faixas e cores que representam performance.",
-        status: "planejado",
-      },
-      {
-        icon: MessageSquare,
-        name: "Categorias de feedback",
-        description: "Tipos e tags usados nos feedbacks.",
-        status: "planejado",
-      },
-      {
-        icon: Target,
-        name: "Tipos de meta",
-        description: "Categorias e unidades disponíveis para metas.",
-        status: "planejado",
-      },
-    ],
-  },
-  {
-    title: "Sistema",
-    description: "Operação, integrações e dados da plataforma.",
-    items: [
-      {
-        icon: Plug,
-        name: "Integrações",
-        description: "Conecte ferramentas externas ao sistema.",
-        status: "planejado",
-      },
-      {
-        icon: History,
-        name: "Auditoria",
-        description: "Histórico de alterações sensíveis.",
-        status: "planejado",
-      },
-      {
-        icon: ArrowDownUp,
-        name: "Importação e exportação",
-        description: "Mova dados em massa entre sistemas.",
-        status: "planejado",
-      },
-    ],
-  },
-];
-
-function SettingsItem({ icon: Icon, name, description, status }: SettingsItemData) {
-  return (
-    <Link
-      to="/configuracoes/em-breve"
-      className={cn(
-        "group grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3 rounded-lg px-2 py-3 transition-colors",
-        "hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-      )}
-    >
-      <span className="flex h-9 w-9 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors group-hover:text-foreground">
-        <Icon className="h-[18px] w-[18px]" />
-      </span>
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-medium text-foreground">{name}</span>
-        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-          {description}
-        </span>
-      </span>
-      {status === "em-desenvolvimento" ? (
-        <StatusBadge tone="info">Em desenvolvimento</StatusBadge>
-      ) : (
-        <StatusBadge tone="neutral">Planejado</StatusBadge>
-      )}
-      <ChevronRight className="h-4 w-4 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-    </Link>
-  );
+function useCompany() {
+  return useQuery({
+    queryKey: ["company-current"],
+    queryFn: async () => {
+      const { data: companyId } = await supabase.rpc("get_user_company_id");
+      if (!companyId) return null;
+      const { data, error } = await supabase
+        .from("companies")
+        .select("id,name")
+        .eq("id", companyId as string)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
 }
 
 function ConfiguracoesPage() {
+  const company = useCompany();
+  const employees = useEmployees();
+  const qc = useQueryClient();
+  const [lang, setLang] = useLanguage();
+  const [name, setName] = useState("");
+
+  useEffect(() => {
+    if (company.data?.name) setName(company.data.name);
+  }, [company.data?.name]);
+
+  const saveCompany = useMutation({
+    mutationFn: async (newName: string) => {
+      if (!company.data?.id) throw new Error("Empresa não identificada.");
+      const { error } = await supabase
+        .from("companies")
+        .update({ name: newName })
+        .eq("id", company.data.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Nome da empresa atualizado.");
+      qc.invalidateQueries({ queryKey: ["company-current"] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const managers = useMemo(() => {
+    const list = employees.data ?? [];
+    const managerIds = new Set(list.map((e) => e.manager_id).filter(Boolean) as string[]);
+    return list.filter((e) => managerIds.has(e.id));
+  }, [employees.data]);
+
+  const dirty = name.trim().length > 0 && name.trim() !== (company.data?.name ?? "");
+
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <PageHeader
         title="Configurações"
-        description="Administre empresa, estrutura organizacional, pessoas, performance e sistema em um único lugar."
+        description="Ajustes essenciais da plataforma."
       />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        {GROUPS.map((group) => (
-          <SectionCard
-            key={group.title}
-            title={group.title}
-            description={group.description}
-            contentClassName="px-3 pb-3 pt-1"
-          >
-            <div className="flex flex-col divide-y divide-border/60">
-              {group.items.map((item) => (
-                <SettingsItem key={item.name} {...item} />
-              ))}
-            </div>
-          </SectionCard>
-        ))}
-      </div>
+      <SectionCard
+        title="Empresa"
+        description="Nome exibido em relatórios e na navegação."
+      >
+        <form
+          className="flex flex-col gap-3 sm:max-w-md"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (dirty) saveCompany.mutate(name.trim());
+          }}
+        >
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="company-name">Nome da empresa</Label>
+            <Input
+              id="company-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={company.isLoading ? "Carregando..." : "Ex.: Acme S.A."}
+              disabled={company.isLoading || !company.data}
+            />
+          </div>
+          <div>
+            <Button type="submit" disabled={!dirty || saveCompany.isPending}>
+              {saveCompany.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar
+            </Button>
+          </div>
+        </form>
+      </SectionCard>
+
+      <SectionCard
+        title="Idioma"
+        description="Define o idioma da interface para todos os usuários do sistema."
+      >
+        <div className="flex flex-wrap gap-2">
+          {([
+            { value: "pt-BR", label: "Português (BR)" },
+            { value: "en", label: "English" },
+          ] as const).map((opt) => {
+            const active = lang === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  setLang(opt.value);
+                  toast.success(
+                    opt.value === "pt-BR" ? "Idioma definido: Português (BR)" : "Language set: English",
+                  );
+                }}
+                className={cn(
+                  "inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm transition-colors",
+                  active
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border bg-background text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Languages className="h-4 w-4" />
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title="Gestores e líderes"
+        description="Pessoas que lideram equipes e têm acesso ao sistema."
+        contentClassName="px-2 pb-3 pt-1"
+      >
+        {employees.isLoading ? (
+          <div className="flex items-center gap-2 px-3 py-6 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Carregando gestores...
+          </div>
+        ) : managers.length === 0 ? (
+          <div className="px-3 py-2">
+            <EmptyState
+              icon={UserCog}
+              title="Nenhum gestor cadastrado"
+              description="Defina o gestor responsável ao cadastrar colaboradores em Pessoas para que apareçam aqui."
+            />
+          </div>
+        ) : (
+          <ul className="flex flex-col divide-y divide-border/60">
+            {managers.map((m) => (
+              <li
+                key={m.id}
+                className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 px-3 py-3"
+              >
+                <Avatar className="h-9 w-9">
+                  {m.avatar_url && <AvatarImage src={m.avatar_url} alt={m.name} />}
+                  <AvatarFallback className="text-xs">{initials(m.name)}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-foreground">{m.name}</div>
+                  <div className="truncate text-xs text-muted-foreground">
+                    {m.role ?? "Gestor"}
+                    {m.email ? ` · ${m.email}` : ""}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </SectionCard>
     </div>
   );
 }
