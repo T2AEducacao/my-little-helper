@@ -13,11 +13,10 @@ import {
   buildDistribution,
   buildEvolutionSeries,
   latestSnapshotsByEmployee,
-  useAlerts,
   useDepartments,
   useEmployees,
-  useSnapshots,
 } from "@/lib/php-data";
+import { usePerformanceWorkspaceData } from "@/features/performance/workspace-data";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
@@ -69,9 +68,10 @@ export const Route = createFileRoute("/_app/")({
 
 function ManagementCenterPage() {
   const { data: employees = [], isLoading: loadingEmployees } = useEmployees();
-  const { data: snapshots = [] } = useSnapshots();
-  const { data: alerts = [] } = useAlerts();
   const { data: departments = [] } = useDepartments();
+  const performanceData = usePerformanceWorkspaceData(employees);
+  const snapshots = performanceData.snapshots;
+  const alerts = performanceData.actions;
 
   const [range, setRange] = useState<RangeValue>("30");
 

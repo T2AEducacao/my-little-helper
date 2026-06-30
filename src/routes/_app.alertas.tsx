@@ -4,7 +4,8 @@ import { PageHeader } from "@/components/php/PageHeader";
 import { SectionCard } from "@/components/php/SectionCard";
 import { StatusBadge, type StatusBadgeTone } from "@/components/php/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { useAlerts, useEmployees, type AlertRow, type EmployeeRow } from "@/lib/php-data";
+import { usePerformanceWorkspaceData } from "@/features/performance/workspace-data";
+import { useEmployees, type AlertRow, type EmployeeRow } from "@/lib/php-data";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
@@ -44,8 +45,9 @@ const PRIORITY_META: Record<
 };
 
 function ActionsPage() {
-  const { data: alerts = [], isLoading: loadingAlerts } = useAlerts();
-  const { data: employees = [] } = useEmployees();
+  const { data: employees = [], isLoading: loadingEmployees } = useEmployees();
+  const performanceData = usePerformanceWorkspaceData(employees);
+  const alerts = performanceData.actions;
 
   const employeeById = useMemo(
     () => new Map(employees.map((employee) => [employee.id, employee] as const)),
@@ -61,6 +63,14 @@ function ActionsPage() {
       }),
     [alerts],
   );
+  const criticalActions = priorityItems.filter((alert) => alert.severity === "critical").length;
+  const todayActions = priorityItems.filter((alert) => isToday(alert.created_at)).length;
+  const goalActions = priorityItems.filter(
+    (alert) => getActionContext(alert).tab === "goals",
+  ).length;
+  const recognitionActions = priorityItems.filter((alert) =>
+    includesAny(getActionText(alert), ["reconhecimento", "elogio"]),
+  ).length;
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -81,34 +91,34 @@ function ActionsPage() {
         <MetricCard
           label="Críticas"
           icon={AlertTriangle}
-          value="—"
-          isEmpty
-          emptyMessage="Sem ações críticas carregadas."
+          value={criticalActions}
+          isEmpty={criticalActions === 0}
+          emptyMessage="Sem ações críticas."
           footer="Prioridade máxima para riscos e quedas relevantes."
           className="border-status-critical/30"
         />
         <MetricCard
           label="Para hoje"
           icon={CalendarClock}
-          value="—"
-          isEmpty
-          emptyMessage="Nenhuma ação do dia carregada."
+          value={todayActions}
+          isEmpty={todayActions === 0}
+          emptyMessage="Nenhuma ação do dia."
           footer="Pendências que devem orientar a rotina diária."
         />
         <MetricCard
           label="Metas e KPIs"
           icon={Target}
-          value="—"
-          isEmpty
-          emptyMessage="Nenhuma meta em risco carregada."
+          value={goalActions}
+          isEmpty={goalActions === 0}
+          emptyMessage="Nenhuma meta em risco."
           footer="Metas em risco e KPIs pendentes aparecerão aqui."
         />
         <MetricCard
           label="Reconhecimentos"
           icon={Sparkles}
-          value="—"
-          isEmpty
-          emptyMessage="Nenhuma sugestão carregada."
+          value={recognitionActions}
+          isEmpty={recognitionActions === 0}
+          emptyMessage="Nenhuma sugestão."
           footer="Ações positivas também devem entrar na rotina."
           className="border-status-excellent/30"
         />
@@ -119,7 +129,7 @@ function ActionsPage() {
           title="Fila de prioridades"
           description="Prioridades que exigem decisão do gestor, da mais urgente para a menos urgente."
         >
-          {loadingAlerts ? (
+          {loadingEmployees ? (
             <div className="rounded-xl border border-dashed border-border bg-muted/20 p-6 text-sm text-muted-foreground">
               Carregando prioridades...
             </div>
@@ -238,11 +248,7 @@ type ActionDestination = {
 };
 
 function resolveActionDestination(alert: AlertRow, employee?: EmployeeRow): ActionDestination {
-  const text = normalizeActionText(
-    [alert.title, alert.explanation, alert.suggested_action].filter(Boolean).join(" "),
-  );
-
-  const action = getActionIntent(text);
+  const action = getActionContext(alert);
   if (employee) {
     return {
       to: "/colaboradores/$id",
@@ -263,6 +269,16 @@ function resolveActionDestination(alert: AlertRow, employee?: EmployeeRow): Acti
     to: "/alertas",
     label: "Ver contexto",
   };
+}
+
+function getActionContext(alert: AlertRow) {
+  return getActionIntent(getActionText(alert));
+}
+
+function getActionText(alert: AlertRow): string {
+  return normalizeActionText(
+    [alert.title, alert.explanation, alert.suggested_action].filter(Boolean).join(" "),
+  );
 }
 
 function getActionIntent(text: string): {
@@ -372,4 +388,14 @@ function formatActionDate(value: string): string {
   } catch {
     return value;
   }
+}
+
+function isToday(value: string): boolean {
+  const date = new Date(value);
+  const today = new Date();
+  return (
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  );
 }
