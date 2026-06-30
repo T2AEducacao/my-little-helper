@@ -407,6 +407,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ensure_current_user_profile: {
+        Args: { _company_name?: string; _profile_name?: string }
+        Returns: string
+      }
       get_user_company_id: { Args: never; Returns: string }
       has_role: {
         Args: {
