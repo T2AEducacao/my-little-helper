@@ -145,7 +145,7 @@ function AuthPage() {
         const auth = await lovableCloudAuth.signInWithPassword(parsed);
         if (!auth) throw new Error("Não foi possível validar sua sessão.");
         toast.success("Bem-vindo de volta!");
-        navigate({ to: "/", replace: true });
+        await goAfterLogin();
       } else {
         const parsed = signUpSchema.parse(form);
         const { session } = await lovableCloudAuth.signUpWithPassword({
@@ -157,7 +157,7 @@ function AuthPage() {
         });
         if (session) {
           toast.success("Conta criada! Entrando...");
-          navigate({ to: "/", replace: true });
+          await goAfterLogin();
           return;
         }
         toast.success("Conta criada! Confirme seu e-mail para entrar no sistema.");
