@@ -18,7 +18,13 @@ import { SectionCard } from "@/components/php/SectionCard";
 import { StatusBadge, type StatusBadgeTone } from "@/components/php/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   usePerformanceWorkspaceData,
   type PerformanceEmployee,
@@ -97,7 +103,10 @@ function GoalsPage() {
   const { data: dbGoals = [] } = useGoals();
   const createGoalMut = useCreateGoal();
   const completeGoalMut = useCompleteGoal();
-  const employeesById = useMemo(() => new Map(employees.map((e) => [e.id, e] as const)), [employees]);
+  const employeesById = useMemo(
+    () => new Map(employees.map((e) => [e.id, e] as const)),
+    [employees],
+  );
   const [openGroups, setOpenGroups] = useState<Record<GroupKey, boolean>>({
     risk: true,
     due_soon: true,
@@ -136,8 +145,7 @@ function GoalsPage() {
       ? Math.round(filteredGoals.reduce((sum, g) => sum + g.progress, 0) / filteredGoals.length)
       : 0;
 
-  const toggleGroup = (key: GroupKey) =>
-    setOpenGroups((s) => ({ ...s, [key]: !s[key] }));
+  const toggleGroup = (key: GroupKey) => setOpenGroups((s) => ({ ...s, [key]: !s[key] }));
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-5">
@@ -178,8 +186,6 @@ function GoalsPage() {
         employeesById={employeesById}
         onComplete={(id) => completeGoalMut.mutate(id)}
       />
-
-
 
       {/* Hero KPIs */}
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-card)]">
@@ -514,7 +520,7 @@ function GoalRow({
       {/* Status + action */}
       <div className="flex items-center justify-end gap-2">
         <StatusBadge tone={STATUS_TONE[goal.status]}>{STATUS_LABEL[goal.status]}</StatusBadge>
-        {employee && !employee.is_mock && (
+        {employee && (
           <Button asChild variant="ghost" size="icon" className="h-7 w-7">
             <Link
               to="/colaboradores/$id"
@@ -558,9 +564,7 @@ function groupGoals(goals: PerformanceGoal[]): Record<GroupKey, PerformanceGoal[
   result.risk.sort((a, b) => (daysUntil(a.due_date) ?? 0) - (daysUntil(b.due_date) ?? 0));
   result.due_soon.sort((a, b) => (daysUntil(a.due_date) ?? 0) - (daysUntil(b.due_date) ?? 0));
   result.on_track.sort((a, b) => b.progress - a.progress);
-  result.achieved.sort(
-    (a, b) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime(),
-  );
+  result.achieved.sort((a, b) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime());
   return result;
 }
 
@@ -694,11 +698,7 @@ function DbGoalsSection({
                   ) : (
                     <>
                       <StatusBadge tone="neutral">Em andamento</StatusBadge>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onComplete(goal.id)}
-                      >
+                      <Button size="sm" variant="outline" onClick={() => onComplete(goal.id)}>
                         <CheckCircle2 className="h-4 w-4" />
                         Meta finalizada
                       </Button>
@@ -727,5 +727,3 @@ function getLocalDueInfo(
   if (days <= 7) return { label: `Em ${days}d`, tone: "attention" };
   return { label: `Em ${days}d`, tone: "good" };
 }
-
-

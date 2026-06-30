@@ -200,8 +200,8 @@ function ManagementCenterPage() {
         title: `${item.employee.name} caiu ${Math.abs(item.current - (item.previous ?? item.current)).toFixed(1)} pts`,
         reason: "Investigue bloqueios e proponha próximo passo.",
         priority: "alta",
-        to: item.employee.is_mock ? "/alertas" : "/colaboradores/$id",
-        params: item.employee.is_mock ? undefined : { id: item.employee.id },
+        to: "/colaboradores/$id",
+        params: { id: item.employee.id },
       }),
     );
     if (criticalAlerts > 0) {
@@ -219,8 +219,8 @@ function ManagementCenterPage() {
         title: `${item.employee.name} em atenção`,
         reason: "Score abaixo da faixa saudável. Marque uma conversa.",
         priority: "média",
-        to: item.employee.is_mock ? "/alertas" : "/colaboradores/$id",
-        params: item.employee.is_mock ? undefined : { id: item.employee.id },
+        to: "/colaboradores/$id",
+        params: { id: item.employee.id },
       }),
     );
     if (withoutRecentScore > 0) {
@@ -312,8 +312,8 @@ function ManagementCenterPage() {
                   avatarUrl={item.employee.avatar_url}
                   score={item.current}
                   delta={delta}
-                  to={item.employee.is_mock ? "/alertas" : "/colaboradores/$id"}
-                  params={item.employee.is_mock ? undefined : { id: item.employee.id }}
+                  to="/colaboradores/$id"
+                  params={{ id: item.employee.id }}
                 />
               );
             })
@@ -352,8 +352,8 @@ function ManagementCenterPage() {
                   avatarUrl={item.employee.avatar_url}
                   score={item.current}
                   delta={delta}
-                  to={item.employee.is_mock ? "/alertas" : "/colaboradores/$id"}
-                  params={item.employee.is_mock ? undefined : { id: item.employee.id }}
+                  to="/colaboradores/$id"
+                  params={{ id: item.employee.id }}
                 />
               );
             })
@@ -395,11 +395,7 @@ function ManagementCenterPage() {
           title="Tendência da equipe"
           description="Score médio ao longo do período selecionado."
           action={
-            <FilterBar<RangeValue>
-              value={range}
-              onChange={setRange}
-              options={[...RANGE_OPTIONS]}
-            />
+            <FilterBar<RangeValue> value={range} onChange={setRange} options={[...RANGE_OPTIONS]} />
           }
         >
           {series.length < 2 ? (

@@ -26,7 +26,7 @@ import {
   Target,
   Users,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 export const Route = createFileRoute("/_app/alertas")({
   head: () => ({
@@ -46,11 +46,32 @@ type Severity = AlertRow["severity"];
 
 const PRIORITY_META: Record<
   Severity,
-  { label: string; short: string; order: number; tone: StatusBadgeTone; slaDays: number; bar: string }
+  {
+    label: string;
+    short: string;
+    order: number;
+    tone: StatusBadgeTone;
+    slaDays: number;
+    bar: string;
+  }
 > = {
-  critical: { label: "Crítica", short: "P1", order: 0, tone: "critical", slaDays: 1, bar: "bg-status-critical" },
+  critical: {
+    label: "Crítica",
+    short: "P1",
+    order: 0,
+    tone: "critical",
+    slaDays: 1,
+    bar: "bg-status-critical",
+  },
   risk: { label: "Alta", short: "P2", order: 1, tone: "risk", slaDays: 3, bar: "bg-status-risk" },
-  attention: { label: "Média", short: "P3", order: 2, tone: "attention", slaDays: 7, bar: "bg-status-attention" },
+  attention: {
+    label: "Média",
+    short: "P3",
+    order: 2,
+    tone: "attention",
+    slaDays: 7,
+    bar: "bg-status-attention",
+  },
   info: { label: "Baixa", short: "P4", order: 3, tone: "info", slaDays: 14, bar: "bg-status-info" },
 };
 
@@ -70,7 +91,14 @@ const PRIORITY_FILTERS: { value: PriorityFilter; label: string }[] = [
   { value: "info", label: "Baixa" },
 ];
 
-type CategoryKey = "all" | "goals" | "reviews" | "feedbacks" | "oneonone" | "development" | "general";
+type CategoryKey =
+  | "all"
+  | "goals"
+  | "reviews"
+  | "feedbacks"
+  | "oneonone"
+  | "development"
+  | "general";
 const CATEGORY_FILTERS: { value: CategoryKey; label: string }[] = [
   { value: "all", label: "Todas" },
   { value: "goals", label: "Metas" },
@@ -92,7 +120,11 @@ const CATEGORY_LABEL: Record<Exclude<CategoryKey, "all">, string> = {
 
 type Bucket = "overdue" | "today" | "week" | "later";
 const BUCKET_META: Record<Bucket, { title: string; description: string; tone: StatusBadgeTone }> = {
-  overdue: { title: "Atrasadas", description: "Passaram do prazo previsto pelo nível de urgência.", tone: "critical" },
+  overdue: {
+    title: "Atrasadas",
+    description: "Passaram do prazo previsto pelo nível de urgência.",
+    tone: "critical",
+  },
   today: { title: "Para hoje", description: "Vencem nas próximas 24 horas.", tone: "risk" },
   week: { title: "Esta semana", description: "Dentro dos próximos 7 dias.", tone: "attention" },
   later: { title: "Mais tarde", description: "Sem urgência imediata.", tone: "info" },
@@ -114,17 +146,21 @@ function ActionsPage() {
     [performanceEmployees],
   );
 
-  const decorate = (alert: AlertRow): DecoratedAction => {
-    const employee = alert.employee_id ? employeeById.get(alert.employee_id) : undefined;
-    const meta = PRIORITY_META[alert.severity];
-    const due = new Date(new Date(alert.created_at).getTime() + meta.slaDays * 86_400_000);
-    const ctx = getActionContext(alert);
-    const category: Exclude<CategoryKey, "all"> = (ctx.tab as Exclude<CategoryKey, "all"> | undefined) ?? "general";
-    return { alert, employee, meta, due, category, ctx };
-  };
+  const decorate = useCallback(
+    (alert: AlertRow): DecoratedAction => {
+      const employee = alert.employee_id ? employeeById.get(alert.employee_id) : undefined;
+      const meta = PRIORITY_META[alert.severity];
+      const due = new Date(new Date(alert.created_at).getTime() + meta.slaDays * 86_400_000);
+      const ctx = getActionContext(alert);
+      const category: Exclude<CategoryKey, "all"> =
+        (ctx.tab as Exclude<CategoryKey, "all"> | undefined) ?? "general";
+      return { alert, employee, meta, due, category, ctx };
+    },
+    [employeeById],
+  );
 
-  const pendingDecorated = useMemo(() => pending.map(decorate), [pending, employeeById]);
-  const resolvedDecorated = useMemo(() => resolved.map(decorate), [resolved, employeeById]);
+  const pendingDecorated = useMemo(() => pending.map(decorate), [pending, decorate]);
+  const resolvedDecorated = useMemo(() => resolved.map(decorate), [resolved, decorate]);
 
   const now = Date.now();
   const overdueCount = pendingDecorated.filter((a) => a.due.getTime() < now).length;
@@ -329,10 +365,7 @@ function BacklogRow({
 
   return (
     <li className="group relative flex items-stretch">
-      <span
-        aria-hidden
-        className={cn("w-1 shrink-0", meta.bar, isResolved && "opacity-30")}
-      />
+      <span aria-hidden className={cn("w-1 shrink-0", meta.bar, isResolved && "opacity-30")} />
       <div className="flex min-w-0 flex-1 flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
         <Link
           to={destination.to}
@@ -518,7 +551,7 @@ function resolveActionDestination(
   employee: PerformanceEmployee | undefined,
   action: ReturnType<typeof getActionContext>,
 ): ActionDestination {
-  if (employee && !employee.is_mock) {
+  if (employee) {
     return {
       to: "/colaboradores/$id",
       params: { id: employee.id },
@@ -573,7 +606,11 @@ function getActionIntent(text: string): {
     };
   }
   if (includesAny(text, ["desenvolvimento", "pdi", "plano"])) {
-    return { tab: "development", employeeLabel: "Ver desenvolvimento", fallbackLabel: "Ver contexto" };
+    return {
+      tab: "development",
+      employeeLabel: "Ver desenvolvimento",
+      fallbackLabel: "Ver contexto",
+    };
   }
   if (includesAny(text, ["1:1", "reuniao", "reunioes", "one on one"])) {
     return { tab: "oneonone", employeeLabel: "Agendar 1:1", fallbackLabel: "Ver contexto" };
