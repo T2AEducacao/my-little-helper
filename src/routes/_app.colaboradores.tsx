@@ -62,6 +62,7 @@ import { PageHeader } from "@/components/php/PageHeader";
 import { EmptyState } from "@/components/php/EmptyState";
 import { StatusBadge } from "@/components/php/StatusBadge";
 import { EmployeeFormDialog } from "@/components/php/EmployeeFormDialog";
+import { EmployeeAccessButton } from "@/components/php/EmployeeAccessButton";
 import { scoreToStatus, scoreLabel } from "@/components/php/types";
 import { cn } from "@/lib/utils";
 import {
