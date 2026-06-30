@@ -1,5 +1,18 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useMutation } from "@tanstack/react-query";
+import ReactMarkdown from "react-markdown";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { gerarAnaliseEmpresa } from "@/lib/analises-ai.functions";
+import { Loader2, Wand2 } from "lucide-react";
 import {
   ArrowRight,
   ArrowUpRight,
