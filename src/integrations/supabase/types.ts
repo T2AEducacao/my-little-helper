@@ -139,6 +139,7 @@ export type Database = {
           manager_id: string | null
           name: string
           notes: string | null
+          profile_id: string | null
           role: string | null
           seniority: string | null
           status: Database["public"]["Enums"]["employee_status"]
@@ -158,6 +159,7 @@ export type Database = {
           manager_id?: string | null
           name: string
           notes?: string | null
+          profile_id?: string | null
           role?: string | null
           seniority?: string | null
           status?: Database["public"]["Enums"]["employee_status"]
@@ -177,6 +179,7 @@ export type Database = {
           manager_id?: string | null
           name?: string
           notes?: string | null
+          profile_id?: string | null
           role?: string | null
           seniority?: string | null
           status?: Database["public"]["Enums"]["employee_status"]
@@ -200,6 +203,67 @@ export type Database = {
           {
             foreignKeyName: "employees_manager_id_fkey"
             columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          deadline: string | null
+          employee_id: string
+          id: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          employee_id: string
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          employee_id?: string
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goals_employee_id_fkey"
+            columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
@@ -407,6 +471,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_employee_id: { Args: never; Returns: string }
       ensure_current_user_profile: {
         Args: { _company_name?: string; _profile_name?: string }
         Returns: string

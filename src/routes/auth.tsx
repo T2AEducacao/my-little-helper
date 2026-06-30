@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { lovableCloudAuth } from "@/integrations/lovable/auth";
+import { getCurrentUserRole } from "@/lib/goals-data";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -96,6 +97,15 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", full_name: "", company_name: "" });
 
+  const goAfterLogin = async () => {
+    const role = await getCurrentUserRole();
+    if (role === "employee") {
+      navigate({ to: "/funcionario", replace: true });
+    } else {
+      navigate({ to: "/", replace: true });
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     const authError = readAuthErrorFromUrl();
@@ -103,8 +113,8 @@ function AuthPage() {
 
     lovableCloudAuth
       .getVerifiedSession({ ensureProfile: true })
-      .then((auth) => {
-        if (!cancelled && auth) navigate({ to: "/", replace: true });
+      .then(async (auth) => {
+        if (!cancelled && auth) await goAfterLogin();
       })
       .catch((err) => console.error("Lovable Cloud session check error", err));
 
@@ -112,8 +122,8 @@ function AuthPage() {
       if (!session) return;
       lovableCloudAuth
         .getVerifiedSession({ ensureProfile: true })
-        .then((auth) => {
-          if (!cancelled && auth) navigate({ to: "/", replace: true });
+        .then(async (auth) => {
+          if (!cancelled && auth) await goAfterLogin();
         })
         .catch((err) => console.error("Lovable Cloud auth state error", err));
     });
@@ -123,6 +133,7 @@ function AuthPage() {
       if (errorTimer) window.clearTimeout(errorTimer);
       unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   const submit = async (e: React.FormEvent) => {
@@ -134,7 +145,7 @@ function AuthPage() {
         const auth = await lovableCloudAuth.signInWithPassword(parsed);
         if (!auth) throw new Error("Não foi possível validar sua sessão.");
         toast.success("Bem-vindo de volta!");
-        navigate({ to: "/", replace: true });
+        await goAfterLogin();
       } else {
         const parsed = signUpSchema.parse(form);
         const { session } = await lovableCloudAuth.signUpWithPassword({
@@ -146,7 +157,7 @@ function AuthPage() {
         });
         if (session) {
           toast.success("Conta criada! Entrando...");
-          navigate({ to: "/", replace: true });
+          await goAfterLogin();
           return;
         }
         toast.success("Conta criada! Confirme seu e-mail para entrar no sistema.");
