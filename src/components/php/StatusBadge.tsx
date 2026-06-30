@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
 import type { ScoreStatus } from "./types";
 
 type Severity = "info" | "attention" | "risk" | "critical";
@@ -14,32 +15,37 @@ const TONE_CLASSES: Record<StatusBadgeTone, string> = {
   neutral: "bg-status-neutral-soft text-muted-foreground",
 };
 
+const DOT_CLASSES: Record<StatusBadgeTone, string> = {
+  excellent: "bg-status-excellent",
+  good: "bg-status-good",
+  attention: "bg-status-attention",
+  risk: "bg-status-risk",
+  critical: "bg-status-critical",
+  info: "bg-status-info",
+  neutral: "bg-status-neutral",
+};
+
 interface Props {
   tone: StatusBadgeTone;
   children: React.ReactNode;
+  icon?: LucideIcon;
   className?: string;
 }
 
-export function StatusBadge({ tone, children, className }: Props) {
+export function StatusBadge({ tone, children, icon: Icon, className }: Props) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+        "inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-medium leading-none",
         TONE_CLASSES[tone],
         className,
       )}
     >
-      <span
-        className={cn("h-1.5 w-1.5 rounded-full", {
-          "bg-status-excellent": tone === "excellent",
-          "bg-status-good": tone === "good",
-          "bg-status-attention": tone === "attention",
-          "bg-status-risk": tone === "risk",
-          "bg-status-critical": tone === "critical",
-          "bg-status-info": tone === "info",
-          "bg-status-neutral": tone === "neutral",
-        })}
-      />
+      {Icon ? (
+        <Icon className="h-3 w-3" />
+      ) : (
+        <span className={cn("h-1.5 w-1.5 rounded-full", DOT_CLASSES[tone])} />
+      )}
       {children}
     </span>
   );
