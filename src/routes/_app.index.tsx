@@ -906,7 +906,7 @@ function ProgressLine({
   icon: typeof TrendingUp;
   label: string;
   value: number;
-  tone: ScoreStatus;
+  tone: ScoreStatus | "info";
 }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-background/40 px-3 py-2">
