@@ -46,6 +46,7 @@ import { MetricCard } from "@/components/php/MetricCard";
 import { AlertCard } from "@/components/php/AlertCard";
 import { FilterBar } from "@/components/php/FilterBar";
 import { EmployeeFormDialog } from "@/components/php/EmployeeFormDialog";
+import { EmployeeAccessButton } from "@/components/php/EmployeeAccessButton";
 import { scoreToStatus, scoreLabel } from "@/components/php/types";
 import {
   usePerformanceWorkspaceData,
@@ -239,6 +240,12 @@ function EmployeeProfilePage() {
               <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
                 <Pencil className="h-4 w-4" /> Editar
               </Button>
+              <EmployeeAccessButton
+                employeeId={employee.id}
+                employeeName={employee.name}
+                hasAccess={!!employee.profile_id}
+                defaultEmail={employee.email}
+              />
             </div>
           </div>
         </div>

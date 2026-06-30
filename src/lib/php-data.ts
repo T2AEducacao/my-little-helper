@@ -19,6 +19,7 @@ export type EmployeeRow = {
   location: string | null;
   contract_type: string | null;
   behavioral_profile: string | null;
+  profile_id?: string | null;
 };
 
 export type SnapshotRow = {
@@ -64,7 +65,7 @@ export type ActivityLogRow = {
 };
 
 const EMPLOYEE_COLS =
-  "id,name,email,role,status,avatar_url,department_id,manager_id,seniority,hire_date,notes,location,contract_type,behavioral_profile";
+  "id,name,email,role,status,avatar_url,department_id,manager_id,seniority,hire_date,notes,location,contract_type,behavioral_profile,profile_id";
 
 const SNAPSHOT_COLS =
   "id,employee_id,snapshot_date,overall_score,delivery_score,quality_score,goals_score,behavior_score,evolution_score,explanation,status";
