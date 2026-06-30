@@ -7,10 +7,11 @@ import { StatusBadge, type StatusBadgeTone } from "@/components/php/StatusBadge"
 import { Button } from "@/components/ui/button";
 import {
   usePerformanceWorkspaceData,
+  type PerformanceEmployee,
   type PerformanceGoal,
   type PerformanceGoalStatus,
 } from "@/features/performance/workspace-data";
-import { useEmployees, type EmployeeRow } from "@/lib/php-data";
+import { useEmployees } from "@/lib/php-data";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   AlertTriangle,
@@ -47,11 +48,12 @@ const GOAL_STATUS_META: Record<
 function GoalsPage() {
   const { data: employees = [], isLoading } = useEmployees();
   const performanceData = usePerformanceWorkspaceData(employees);
+  const performanceEmployees = performanceData.employees;
   const goals = performanceData.goals;
 
   const employeeById = useMemo(
-    () => new Map(employees.map((employee) => [employee.id, employee] as const)),
-    [employees],
+    () => new Map(performanceEmployees.map((employee) => [employee.id, employee] as const)),
+    [performanceEmployees],
   );
 
   const sortedGoals = useMemo(
@@ -150,7 +152,7 @@ function GoalsPage() {
   );
 }
 
-function GoalRow({ goal, employee }: { goal: PerformanceGoal; employee?: EmployeeRow }) {
+function GoalRow({ goal, employee }: { goal: PerformanceGoal; employee?: PerformanceEmployee }) {
   const status = GOAL_STATUS_META[goal.status];
   const progressTone = goal.status === "achieved" ? "excellent" : goal.status;
 
@@ -195,14 +197,14 @@ function GoalRow({ goal, employee }: { goal: PerformanceGoal; employee?: Employe
         </div>
 
         <Button asChild size="sm" variant="outline">
-          {employee ? (
+          {employee && !employee.is_mock ? (
             <Link to="/colaboradores/$id" params={{ id: employee.id }} search={{ tab: "goals" }}>
               Ver responsável
               <ArrowRight className="h-4 w-4" />
             </Link>
           ) : (
-            <Link to="/colaboradores">
-              Ver pessoas
+            <Link to="/metas">
+              Ver contexto
               <ArrowRight className="h-4 w-4" />
             </Link>
           )}

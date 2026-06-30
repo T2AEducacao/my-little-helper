@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AlertRow, EmployeeRow, SnapshotRow } from "@/lib/php-data";
 
+export type PerformanceEmployee = EmployeeRow & {
+  is_mock?: boolean;
+};
+
 export type PerformanceGoalStatus = "risk" | "on_track" | "achieved";
 
 export type PerformanceGoal = {
@@ -18,6 +22,7 @@ export type PerformanceGoal = {
 };
 
 export type PerformanceWorkspaceData = {
+  employees: PerformanceEmployee[];
   actions: AlertRow[];
   resolvedActions: AlertRow[];
   goals: PerformanceGoal[];
@@ -51,7 +56,9 @@ export function usePerformanceWorkspaceData(employees: EmployeeRow[]): Performan
     });
   }, []);
 
-  const baseActions = useMemo(() => buildMockActions(employees), [employees]);
+  const performanceEmployees = useMemo(() => buildPerformanceEmployees(employees), [employees]);
+
+  const baseActions = useMemo(() => buildMockActions(performanceEmployees), [performanceEmployees]);
 
   const actions = useMemo(
     () =>
@@ -74,15 +81,27 @@ export function usePerformanceWorkspaceData(employees: EmployeeRow[]): Performan
 
   return useMemo(
     () => ({
+      employees: performanceEmployees,
       actions,
       resolvedActions,
-      goals: buildMockGoals(employees),
-      snapshots: buildMockSnapshots(employees),
+      goals: buildMockGoals(performanceEmployees),
+      snapshots: buildMockSnapshots(performanceEmployees),
       resolveAction,
       isMocked: true,
     }),
-    [actions, employees, resolveAction, resolvedActions],
+    [actions, performanceEmployees, resolveAction, resolvedActions],
   );
+}
+
+function buildPerformanceEmployees(employees: EmployeeRow[]): PerformanceEmployee[] {
+  const usableEmployees = employees.filter((employee) => employee.status !== "inactive");
+  const realEmployees = usableEmployees.length > 0 ? usableEmployees : employees;
+  const mockNeeded = Math.max(0, 6 - realEmployees.length);
+
+  return [
+    ...realEmployees.map((employee) => ({ ...employee, is_mock: false })),
+    ...DEMO_EMPLOYEES.slice(0, mockNeeded),
+  ];
 }
 
 function readResolvedActionIds(): Set<string> {
@@ -110,8 +129,8 @@ function writeResolvedActionIds(actionIds: Set<string>): void {
   }
 }
 
-function buildMockActions(employees: EmployeeRow[]): AlertRow[] {
-  const activeEmployees = employees.filter((employee) => employee.status === "active");
+function buildMockActions(employees: PerformanceEmployee[]): AlertRow[] {
+  const activeEmployees = employees.filter((employee) => employee.status !== "inactive");
   const [first, second, third, fourth] = activeEmployees;
   const actions: AlertRow[] = [];
 
@@ -183,8 +202,8 @@ function buildMockActions(employees: EmployeeRow[]): AlertRow[] {
   return actions;
 }
 
-function buildMockGoals(employees: EmployeeRow[]): PerformanceGoal[] {
-  const activeEmployees = employees.filter((employee) => employee.status === "active");
+function buildMockGoals(employees: PerformanceEmployee[]): PerformanceGoal[] {
+  const activeEmployees = employees.filter((employee) => employee.status !== "inactive");
   const templates = [
     {
       title: "Atingir meta de entregas do ciclo",
@@ -261,8 +280,8 @@ function buildMockGoals(employees: EmployeeRow[]): PerformanceGoal[] {
   });
 }
 
-function buildMockSnapshots(employees: EmployeeRow[]): SnapshotRow[] {
-  const activeEmployees = employees.filter((employee) => employee.status === "active");
+function buildMockSnapshots(employees: PerformanceEmployee[]): SnapshotRow[] {
+  const activeEmployees = employees.filter((employee) => employee.status !== "inactive");
   const baseScores = [92, 68, 73, 84, 89, 61, 77, 95, 71, 86];
 
   return activeEmployees.flatMap((employee, index) => {
@@ -315,3 +334,108 @@ function daysAgo(days: number): string {
 function dateOnly(value: string): string {
   return value.slice(0, 10);
 }
+
+const DEMO_EMPLOYEES: PerformanceEmployee[] = [
+  {
+    id: "mock-employee-ana-costa",
+    name: "Ana Costa",
+    email: "ana.costa@demo.local",
+    role: "Analista Comercial",
+    status: "active",
+    avatar_url: null,
+    department_id: null,
+    manager_id: null,
+    seniority: "Pleno",
+    hire_date: "2024-02-12",
+    notes: null,
+    location: "São Paulo",
+    contract_type: "CLT",
+    behavioral_profile: null,
+    is_mock: true,
+  },
+  {
+    id: "mock-employee-bruno-lima",
+    name: "Bruno Lima",
+    email: "bruno.lima@demo.local",
+    role: "Coordenador de Operações",
+    status: "active",
+    avatar_url: null,
+    department_id: null,
+    manager_id: null,
+    seniority: "Coordenador",
+    hire_date: "2023-08-21",
+    notes: null,
+    location: "Curitiba",
+    contract_type: "CLT",
+    behavioral_profile: null,
+    is_mock: true,
+  },
+  {
+    id: "mock-employee-carla-mendes",
+    name: "Carla Mendes",
+    email: "carla.mendes@demo.local",
+    role: "Especialista de Sucesso",
+    status: "active",
+    avatar_url: null,
+    department_id: null,
+    manager_id: null,
+    seniority: "Sênior",
+    hire_date: "2022-11-03",
+    notes: null,
+    location: "Remoto",
+    contract_type: "PJ",
+    behavioral_profile: null,
+    is_mock: true,
+  },
+  {
+    id: "mock-employee-diego-rocha",
+    name: "Diego Rocha",
+    email: "diego.rocha@demo.local",
+    role: "Assistente Administrativo",
+    status: "active",
+    avatar_url: null,
+    department_id: null,
+    manager_id: null,
+    seniority: "Júnior",
+    hire_date: "2025-01-15",
+    notes: null,
+    location: "Belo Horizonte",
+    contract_type: "CLT",
+    behavioral_profile: null,
+    is_mock: true,
+  },
+  {
+    id: "mock-employee-elisa-nunes",
+    name: "Elisa Nunes",
+    email: "elisa.nunes@demo.local",
+    role: "Gerente de Atendimento",
+    status: "active",
+    avatar_url: null,
+    department_id: null,
+    manager_id: null,
+    seniority: "Gerente",
+    hire_date: "2021-05-18",
+    notes: null,
+    location: "Rio de Janeiro",
+    contract_type: "CLT",
+    behavioral_profile: null,
+    is_mock: true,
+  },
+  {
+    id: "mock-employee-felipe-alves",
+    name: "Felipe Alves",
+    email: "felipe.alves@demo.local",
+    role: "Analista Financeiro",
+    status: "active",
+    avatar_url: null,
+    department_id: null,
+    manager_id: null,
+    seniority: "Pleno",
+    hire_date: "2023-03-07",
+    notes: null,
+    location: "Porto Alegre",
+    contract_type: "CLT",
+    behavioral_profile: null,
+    is_mock: true,
+  },
+];

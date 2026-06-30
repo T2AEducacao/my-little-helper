@@ -70,8 +70,10 @@ function ManagementCenterPage() {
   const { data: employees = [], isLoading: loadingEmployees } = useEmployees();
   const { data: departments = [] } = useDepartments();
   const performanceData = usePerformanceWorkspaceData(employees);
+  const performanceEmployees = performanceData.employees;
   const snapshots = performanceData.snapshots;
   const alerts = performanceData.actions;
+  const goals = performanceData.goals;
 
   const [range, setRange] = useState<RangeValue>("30");
 
@@ -80,12 +82,12 @@ function ManagementCenterPage() {
     [departments],
   );
   const employeeById = useMemo(
-    () => new Map(employees.map((employee) => [employee.id, employee] as const)),
-    [employees],
+    () => new Map(performanceEmployees.map((employee) => [employee.id, employee] as const)),
+    [performanceEmployees],
   );
   const latest = useMemo(() => latestSnapshotsByEmployee(snapshots), [snapshots]);
 
-  const activeEmployees = employees.filter((employee) => employee.status === "active");
+  const activeEmployees = performanceEmployees.filter((employee) => employee.status !== "inactive");
 
   const scoredActive = activeEmployees
     .map((employee) => {
@@ -132,8 +134,9 @@ function ManagementCenterPage() {
   );
 
   const actionCount = openAlerts.length + attention.length + withoutRecentScore;
-  const distribution = buildDistribution(employees, latest);
+  const distribution = buildDistribution(performanceEmployees, latest);
   const series = buildEvolutionSeries(snapshots, Number(range));
+  const goalsAtRisk = goals.filter((goal) => goal.status === "risk").length;
 
   const recommended = useMemo(() => {
     const items: {
@@ -285,10 +288,14 @@ function ManagementCenterPage() {
           <MetricCard
             label="Quais metas estão em risco?"
             icon={Target}
-            value="—"
-            isEmpty
-            emptyMessage="Módulo de Metas e KPIs será conectado na próxima fase."
-            footer="Clique para acessar a área preparada de metas."
+            value={goalsAtRisk}
+            isEmpty={goalsAtRisk === 0}
+            emptyMessage="Nenhuma meta em risco."
+            footer={
+              goalsAtRisk > 0
+                ? "Clique para revisar metas que precisam de correção de rota."
+                : "Metas simuladas aparecem aqui quando entram em risco."
+            }
             className="h-full transition hover:border-primary/40"
           />
         </Link>
@@ -429,8 +436,8 @@ function ManagementCenterPage() {
                 return (
                   <Link
                     key={item.employee.id}
-                    to="/colaboradores/$id"
-                    params={{ id: item.employee.id }}
+                    to={item.employee.is_mock ? "/alertas" : "/colaboradores/$id"}
+                    params={item.employee.is_mock ? undefined : { id: item.employee.id }}
                     className="block"
                   >
                     <EmployeeMiniCard
@@ -476,8 +483,8 @@ function ManagementCenterPage() {
               {highlights.slice(0, 4).map((item) => (
                 <Link
                   key={item.employee.id}
-                  to="/colaboradores/$id"
-                  params={{ id: item.employee.id }}
+                  to={item.employee.is_mock ? "/alertas" : "/colaboradores/$id"}
+                  params={item.employee.is_mock ? undefined : { id: item.employee.id }}
                   className="block"
                 >
                   <EmployeeMiniCard

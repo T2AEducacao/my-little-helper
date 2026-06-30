@@ -5,7 +5,10 @@ import { PageHeader } from "@/components/php/PageHeader";
 import { SectionCard } from "@/components/php/SectionCard";
 import { StatusBadge, type StatusBadgeTone } from "@/components/php/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { usePerformanceWorkspaceData } from "@/features/performance/workspace-data";
+import {
+  usePerformanceWorkspaceData,
+  type PerformanceEmployee,
+} from "@/features/performance/workspace-data";
 import { useEmployees, type AlertRow, type EmployeeRow } from "@/lib/php-data";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -56,12 +59,13 @@ function ActionsPage() {
   const { data: employees = [], isLoading: loadingEmployees } = useEmployees();
   const [actionView, setActionView] = useState<ActionView>("pending");
   const performanceData = usePerformanceWorkspaceData(employees);
+  const performanceEmployees = performanceData.employees;
   const alerts = performanceData.actions;
   const resolvedAlerts = performanceData.resolvedActions;
 
   const employeeById = useMemo(
-    () => new Map(employees.map((employee) => [employee.id, employee] as const)),
-    [employees],
+    () => new Map(performanceEmployees.map((employee) => [employee.id, employee] as const)),
+    [performanceEmployees],
   );
 
   const priorityItems = useMemo(
@@ -224,7 +228,7 @@ function PriorityQueueItem({
   onResolve,
 }: {
   alert: AlertRow;
-  employee?: EmployeeRow;
+  employee?: PerformanceEmployee;
   isResolved?: boolean;
   onResolve: (alert: AlertRow) => void;
 }) {
@@ -305,9 +309,12 @@ type ActionDestination = {
   label: string;
 };
 
-function resolveActionDestination(alert: AlertRow, employee?: EmployeeRow): ActionDestination {
+function resolveActionDestination(
+  alert: AlertRow,
+  employee?: PerformanceEmployee,
+): ActionDestination {
   const action = getActionContext(alert);
-  if (employee) {
+  if (employee && !employee.is_mock) {
     return {
       to: "/colaboradores/$id",
       params: { id: employee.id },
