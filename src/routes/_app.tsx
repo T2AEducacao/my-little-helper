@@ -3,7 +3,7 @@ import { AppSidebar } from "@/components/php/AppSidebar";
 import { MobileBottomNav } from "@/components/php/MobileBottomNav";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { lovableCloudAuth } from "@/integrations/lovable/auth";
-import { getCurrentUserRole } from "@/lib/goals-data";
+import { getCurrentAccessContext } from "@/lib/goals-data";
 import { Outlet, createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
@@ -46,9 +46,9 @@ function AppLayout() {
           redirectToAuth();
           return;
         }
-        const role = await getCurrentUserRole();
+        const access = await getCurrentAccessContext();
         if (!mounted) return;
-        if (role === "employee") {
+        if (access.isEmployeePortalUser) {
           navigate({ to: "/funcionario", replace: true });
           return;
         }
@@ -64,10 +64,19 @@ function AppLayout() {
       if (session) {
         lovableCloudAuth
           .getVerifiedSession({ ensureProfile: true })
-          .then((auth) => {
+          .then(async (auth) => {
             if (!mounted) return;
-            if (auth) setChecked(true);
-            else redirectToAuth();
+            if (!auth) {
+              redirectToAuth();
+              return;
+            }
+            const access = await getCurrentAccessContext();
+            if (!mounted) return;
+            if (access.isEmployeePortalUser) {
+              navigate({ to: "/funcionario", replace: true });
+              return;
+            }
+            setChecked(true);
           })
           .catch((err) => {
             console.error("Lovable Cloud auth state error", err);

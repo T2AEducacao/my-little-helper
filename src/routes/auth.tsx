@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { lovableCloudAuth } from "@/integrations/lovable/auth";
-import { getCurrentUserRole } from "@/lib/goals-data";
+import { getCurrentAccessContext } from "@/lib/goals-data";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -98,8 +98,8 @@ function AuthPage() {
   const [form, setForm] = useState({ email: "", password: "", full_name: "", company_name: "" });
 
   const goAfterLogin = async () => {
-    const role = await getCurrentUserRole();
-    if (role === "employee") {
+    const access = await getCurrentAccessContext();
+    if (access.isEmployeePortalUser) {
       navigate({ to: "/funcionario", replace: true });
     } else {
       navigate({ to: "/", replace: true });

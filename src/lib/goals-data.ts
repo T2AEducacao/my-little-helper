@@ -52,11 +52,7 @@ export function useMyEmployeeGoals() {
 export function useCreateGoal() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: {
-      name: string;
-      employee_id: string;
-      deadline: string | null;
-    }) => {
+    mutationFn: async (input: { name: string; employee_id: string; deadline: string | null }) => {
       const companyId = await getCurrentCompanyId();
       if (!companyId) throw new Error("Sessão sem empresa identificada.");
       const { data: u } = await supabase.auth.getUser();
@@ -104,19 +100,64 @@ export function useDeleteGoal() {
   });
 }
 
-export async function getCurrentUserRole(): Promise<
-  "admin" | "manager" | "employee" | null
-> {
+export type CurrentUserRole = "admin" | "manager" | "employee";
+
+export type CurrentAccessContext = {
+  role: CurrentUserRole | null;
+  roles: CurrentUserRole[];
+  employeeId: string | null;
+  isEmployeePortalUser: boolean;
+};
+
+export async function getCurrentAccessContext(): Promise<CurrentAccessContext> {
   const { data: u } = await supabase.auth.getUser();
-  if (!u.user) return null;
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", u.user.id);
-  if (error || !data) return null;
-  const roles = data.map((r) => r.role as "admin" | "manager" | "employee");
-  if (roles.includes("admin")) return "admin";
-  if (roles.includes("manager")) return "manager";
-  if (roles.includes("employee")) return "employee";
-  return null;
+  if (!u.user) {
+    return {
+      role: null,
+      roles: [],
+      employeeId: null,
+      isEmployeePortalUser: false,
+    };
+  }
+
+  const [{ data: rolesData, error: rolesError }, { data: employeeData, error: employeeError }] =
+    await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", u.user.id),
+      supabase.from("employees").select("id").eq("profile_id", u.user.id).maybeSingle(),
+    ]);
+
+  if (rolesError) throw rolesError;
+  if (employeeError) throw employeeError;
+
+  const roles = (rolesData ?? []).map((r) => r.role as CurrentUserRole);
+  const employeeId = employeeData?.id ?? null;
+
+  if (employeeId) {
+    return {
+      role: "employee",
+      roles,
+      employeeId,
+      isEmployeePortalUser: true,
+    };
+  }
+
+  const role = roles.includes("admin")
+    ? "admin"
+    : roles.includes("manager")
+      ? "manager"
+      : roles.includes("employee")
+        ? "employee"
+        : null;
+
+  return {
+    role,
+    roles,
+    employeeId,
+    isEmployeePortalUser: role === "employee",
+  };
+}
+
+export async function getCurrentUserRole(): Promise<CurrentUserRole | null> {
+  const context = await getCurrentAccessContext();
+  return context.role;
 }

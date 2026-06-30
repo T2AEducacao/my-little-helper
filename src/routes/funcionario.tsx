@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, useNavigate, Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { lovableCloudAuth } from "@/integrations/lovable/auth";
-import { getCurrentUserRole } from "@/lib/goals-data";
+import { getCurrentAccessContext } from "@/lib/goals-data";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogOut, Target, UserRound } from "lucide-react";
@@ -26,9 +26,9 @@ function EmployeeLayout() {
           navigate({ to: "/auth", replace: true });
           return;
         }
-        const role = await getCurrentUserRole();
+        const access = await getCurrentAccessContext();
         if (!mounted) return;
-        if (role !== "employee") {
+        if (!access.isEmployeePortalUser) {
           navigate({ to: "/", replace: true });
           return;
         }

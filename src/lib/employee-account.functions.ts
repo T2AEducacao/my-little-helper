@@ -45,6 +45,7 @@ export const provisionEmployeeAccount = createServerFn({ method: "POST" })
       .from("employees")
       .select("id, name, profile_id, company_id")
       .eq("id", data.employee_id)
+      .eq("company_id", companyId)
       .maybeSingle();
     if (empErr) throw new Error(empErr.message);
     if (!employee) throw new Error("Colaborador não encontrado.");
@@ -90,11 +91,23 @@ export const provisionEmployeeAccount = createServerFn({ method: "POST" })
       throw new Error(roleInsertErr.message);
     }
 
+    const { error: elevatedRolesErr } = await supabaseAdmin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", newUserId)
+      .eq("company_id", companyId)
+      .in("role", ["admin", "manager"]);
+    if (elevatedRolesErr) {
+      await supabaseAdmin.auth.admin.deleteUser(newUserId);
+      throw new Error(elevatedRolesErr.message);
+    }
+
     // Link employee
     const { error: linkErr } = await supabaseAdmin
       .from("employees")
       .update({ profile_id: newUserId })
-      .eq("id", data.employee_id);
+      .eq("id", data.employee_id)
+      .eq("company_id", companyId);
     if (linkErr) {
       await supabaseAdmin.auth.admin.deleteUser(newUserId);
       throw new Error(linkErr.message);
