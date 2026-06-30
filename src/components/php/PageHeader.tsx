@@ -5,13 +5,20 @@ interface Props {
   description?: string;
   actions?: React.ReactNode;
   className?: string;
+  bordered?: boolean;
 }
 
-export function PageHeader({ title, description, actions, className }: Props) {
+export function PageHeader({ title, description, actions, className, bordered }: Props) {
   return (
-    <div className={cn("flex flex-wrap items-start justify-between gap-4", className)}>
+    <div
+      className={cn(
+        "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 sm:flex sm:flex-wrap sm:justify-between",
+        bordered && "border-b border-border pb-5",
+        className,
+      )}
+    >
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[28px]">
+        <h1 className="truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
           {title}
         </h1>
         {description && (

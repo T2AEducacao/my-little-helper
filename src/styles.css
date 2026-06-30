@@ -69,8 +69,9 @@
   --color-status-neutral-foreground: var(--status-neutral-foreground);
   --color-status-neutral-soft: var(--status-neutral-soft);
 
-  --shadow-soft: 0 1px 2px 0 oklch(0 0 0 / 0.04), 0 1px 3px 0 oklch(0 0 0 / 0.06);
-  --shadow-card: 0 1px 2px 0 oklch(0 0 0 / 0.04), 0 4px 12px -2px oklch(0 0 0 / 0.05);
+  --shadow-soft: 0 1px 1px 0 oklch(0 0 0 / 0.03);
+  --shadow-card: 0 1px 2px 0 oklch(0 0 0 / 0.04);
+  --shadow-elevated: 0 1px 2px 0 oklch(0 0 0 / 0.04), 0 8px 24px -6px oklch(0 0 0 / 0.08);
 }
 
 :root {
