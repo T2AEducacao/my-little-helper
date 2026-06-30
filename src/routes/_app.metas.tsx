@@ -94,7 +94,10 @@ function GoalsPage() {
   const goals = performanceData.goals;
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
   const [createOpen, setCreateOpen] = useState(false);
-  const { goals: localGoals, addGoal, completeGoal } = useLocalGoals();
+  const { data: dbGoals = [] } = useGoals();
+  const createGoalMut = useCreateGoal();
+  const completeGoalMut = useCompleteGoal();
+  const employeesById = useMemo(() => new Map(employees.map((e) => [e.id, e] as const)), [employees]);
   const [openGroups, setOpenGroups] = useState<Record<GroupKey, boolean>>({
     risk: true,
     due_soon: true,
