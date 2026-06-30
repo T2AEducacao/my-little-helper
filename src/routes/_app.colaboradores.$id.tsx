@@ -19,7 +19,12 @@ import {
   CalendarClock,
   Users,
   MapPin,
+  Mail,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   LineChart,
   Line,
@@ -143,8 +148,19 @@ function EmployeeProfilePage() {
   });
   const ActionIcon = decisionSummary.actionIcon;
 
+  const placeholderTabs = new Set<EmployeeProfileTab>([
+    "goals",
+    "indicators",
+    "reviews",
+    "feedbacks",
+    "oneonone",
+    "development",
+  ]);
+  const activeTab: EmployeeProfileTab = tab ?? "overview";
+  const scoreStatus = scoreToStatus(latest?.overall_score ?? null);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
         <Button
           asChild
@@ -158,136 +174,133 @@ function EmployeeProfilePage() {
         </Button>
       </div>
 
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-card)]">
-        <div className="grid gap-5 xl:grid-cols-[1fr_360px] xl:items-start">
-          <div className="flex items-start gap-4">
-            <Avatar className="h-16 w-16">
+      {/* Hero: identity + state/next action */}
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-card)]">
+        <div className="grid gap-0 lg:grid-cols-[1fr_360px]">
+          <div className="flex items-start gap-4 p-5">
+            <Avatar className="h-14 w-14 shrink-0">
               {employee.avatar_url && <AvatarImage src={employee.avatar_url} alt={employee.name} />}
-              <AvatarFallback className="text-lg">{initials(employee.name)}</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-base font-medium text-primary">
+                {initials(employee.name)}
+              </AvatarFallback>
             </Avatar>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                <h1 className="text-xl font-semibold tracking-tight text-foreground">
                   {employee.name}
                 </h1>
-                <StatusBadge tone={employee.status === "active" ? "info" : "neutral"}>
-                  {STATUS_LABEL[employee.status]}
-                </StatusBadge>
+                {employee.status !== "active" && (
+                  <StatusBadge tone="neutral">{STATUS_LABEL[employee.status]}</StatusBadge>
+                )}
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-0.5 text-sm text-muted-foreground">
                 {employee.role ?? "—"}
-                {employee.seniority && <> · {employee.seniority}</>}
+                {employee.seniority && <span className="text-muted-foreground/70"> · {employee.seniority}</span>}
               </p>
-              <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-1.5 text-xs text-muted-foreground sm:grid-cols-2 lg:grid-cols-3">
-                <Detail icon={Users} label="Área" value={deptName} />
-                <Detail icon={Users} label="Gestor" value={managerName} />
-                <Detail
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
+                <MetaPill icon={Users} label="Área" value={deptName} />
+                <MetaPill icon={Users} label="Gestor" value={managerName} />
+                <MetaPill
                   icon={CalendarClock}
                   label="Entrada"
                   value={employee.hire_date ? formatDate(employee.hire_date) : "—"}
                 />
-                <Detail icon={MapPin} label="Localidade" value={employee.location ?? "—"} />
-                <Detail icon={Activity} label="E-mail" value={employee.email ?? "—"} />
+                <MetaPill icon={MapPin} label="Local" value={employee.location ?? "—"} />
+                <MetaPill icon={Mail} label="E-mail" value={employee.email ?? "—"} />
                 {employee.contract_type && (
-                  <Detail icon={ClipboardCheck} label="Contrato" value={employee.contract_type} />
+                  <MetaPill icon={ClipboardCheck} label="Contrato" value={employee.contract_type} />
                 )}
-              </dl>
+              </div>
             </div>
           </div>
-          <div className="rounded-xl border border-border bg-muted/20 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
+
+          <div
+            className={cn(
+              "flex flex-col gap-3 border-t border-border p-5 lg:border-l lg:border-t-0",
+              decisionSummary.tone === "critical" && "bg-status-critical/5",
+              decisionSummary.tone === "attention" && "bg-status-attention/5",
+              decisionSummary.tone === "good" && "bg-status-good/5",
+              decisionSummary.tone === "info" && "bg-muted/30",
+              decisionSummary.tone === "risk" && "bg-status-risk/5",
+            )}
+          >
+            <div className="flex items-center justify-between gap-2">
               <StatusBadge tone={decisionSummary.tone}>{decisionSummary.statusLabel}</StatusBadge>
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-[11px] font-medium text-muted-foreground">
                 {decisionSummary.trendLabel}
               </span>
             </div>
-
-            <p className="mt-3 text-sm font-semibold leading-5 text-foreground">
-              {decisionSummary.reason}
-            </p>
-
-            <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
-              <div className="rounded-lg bg-background px-3 py-2">
-                <p className="text-[11px] font-medium text-muted-foreground">Score</p>
-                <p className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">
-                  {latest?.overall_score != null ? `${Math.round(latest.overall_score)}/100` : "—"}
-                </p>
-              </div>
-              <div className="rounded-lg bg-background px-3 py-2">
-                <p className="text-[11px] font-medium text-muted-foreground">Alertas</p>
-                <p className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">
-                  {openAlerts.length}
-                </p>
-              </div>
-              <div className="rounded-lg bg-background px-3 py-2">
-                <p className="text-[11px] font-medium text-muted-foreground">Metas risco</p>
-                <p className="mt-0.5 text-sm font-semibold tabular-nums text-foreground">
-                  {employeeGoals.filter((goal) => goal.status === "risk").length}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
+            <p className="text-sm font-medium leading-5 text-foreground">{decisionSummary.reason}.</p>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
               <Button size="sm" onClick={() => toast(decisionSummary.actionToast)}>
-                <ActionIcon className="mr-1.5 h-4 w-4" />
+                <ActionIcon className="h-4 w-4" />
                 {decisionSummary.actionLabel}
               </Button>
               <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
-                <Pencil className="mr-1.5 h-4 w-4" /> Editar
+                <Pencil className="h-4 w-4" /> Editar
               </Button>
             </div>
           </div>
         </div>
+
+        {/* Stat strip */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-border bg-muted/20 px-5 py-3">
+          <StatItem
+            label="Score"
+            value={latest?.overall_score != null ? Math.round(latest.overall_score) : "—"}
+            sublabel={latest ? scoreLabel(scoreStatus) : "Sem dados"}
+            tone={scoreStatus}
+          />
+          <StatItem
+            label="Tendência"
+            value={
+              diff === null ? (
+                "—"
+              ) : (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1",
+                    diff > 0 && "text-status-good",
+                    diff < 0 && "text-status-risk",
+                  )}
+                >
+                  {diff > 0 ? (
+                    <ArrowUpRight className="h-4 w-4" />
+                  ) : diff < 0 ? (
+                    <ArrowDownRight className="h-4 w-4" />
+                  ) : (
+                    <Minus className="h-4 w-4" />
+                  )}
+                  {diff > 0 ? "+" : ""}
+                  {diff.toFixed(1)}
+                </span>
+              )
+            }
+            sublabel="vs. período anterior"
+          />
+          <StatItem
+            label="Alertas abertos"
+            value={openAlerts.length}
+            sublabel={openAlerts.length === 0 ? "Sem alertas" : "Requerem ação"}
+            tone={openAlerts.length === 0 ? "good" : "attention"}
+          />
+          <StatItem
+            label="Metas em risco"
+            value={employeeGoals.filter((g) => g.status === "risk").length}
+            sublabel={`${employeeGoals.length} meta(s) total`}
+            tone={employeeGoals.some((g) => g.status === "risk") ? "risk" : "neutral"}
+          />
+          <StatItem
+            label="Última avaliação"
+            value={latest ? formatDate(latest.snapshot_date) : "—"}
+            sublabel={latest ? "Snapshot recente" : "Pendente"}
+          />
+        </div>
       </div>
 
-      {/* Resumo cards */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <ScoreCard
-          score={latest?.overall_score ?? null}
-          label="Score individual"
-          description={
-            latest
-              ? diff === null
-                ? "Sem comparativo anterior."
-                : diff > 0
-                  ? `+${diff.toFixed(1)} pontos vs. período anterior.`
-                  : diff < 0
-                    ? `${diff.toFixed(1)} pontos vs. período anterior.`
-                    : "Estável em relação ao período anterior."
-              : undefined
-          }
-          emptyMessage="Ainda não há score calculado para este colaborador."
-        />
-        <MetricCard
-          icon={Target}
-          label="Metas ativas"
-          value="—"
-          hint="Em breve: total de metas no prazo, em atenção e em risco."
-        />
-        <MetricCard
-          icon={ClipboardCheck}
-          label="Última avaliação"
-          value={latest ? formatDate(latest.snapshot_date) : "—"}
-          hint={
-            latest ? "Snapshot mais recente do colaborador." : "Nenhuma avaliação registrada ainda."
-          }
-        />
-        <MetricCard
-          icon={MessageSquare}
-          label="Feedbacks recentes"
-          value="—"
-          hint="Disponível ao ativar o módulo de feedbacks."
-        />
-        <MetricCard
-          icon={CalendarPlus}
-          label="Próximas ações"
-          value="—"
-          hint="1:1, planos de desenvolvimento e ações abertas."
-        />
-      </div>
-
+      {/* Tab strip */}
       <Tabs
-        value={tab ?? "overview"}
+        value={activeTab}
         onValueChange={(value) =>
           navigate({
             params: { id },
@@ -300,31 +313,15 @@ function EmployeeProfilePage() {
         className="w-full"
       >
         <div className="-mx-1 overflow-x-auto">
-          <TabsList className="inline-flex w-max">
-            <TabsTrigger value="overview">
-              <Sparkles className="mr-1.5 h-4 w-4" /> Visão geral
-            </TabsTrigger>
-            <TabsTrigger value="goals">
-              <Target className="mr-1.5 h-4 w-4" /> Metas
-            </TabsTrigger>
-            <TabsTrigger value="indicators">
-              <LineChartIcon className="mr-1.5 h-4 w-4" /> Indicadores
-            </TabsTrigger>
-            <TabsTrigger value="reviews">
-              <ClipboardCheck className="mr-1.5 h-4 w-4" /> Avaliações
-            </TabsTrigger>
-            <TabsTrigger value="feedbacks">
-              <MessageSquare className="mr-1.5 h-4 w-4" /> Feedbacks
-            </TabsTrigger>
-            <TabsTrigger value="oneonone">
-              <CalendarPlus className="mr-1.5 h-4 w-4" /> Reuniões 1:1
-            </TabsTrigger>
-            <TabsTrigger value="development">
-              <Activity className="mr-1.5 h-4 w-4" /> Desenvolvimento
-            </TabsTrigger>
-            <TabsTrigger value="history">
-              <History className="mr-1.5 h-4 w-4" /> Histórico
-            </TabsTrigger>
+          <TabsList className="inline-flex h-10 w-max gap-1 bg-transparent p-0">
+            <ProfileTab value="overview" icon={Sparkles} label="Visão geral" />
+            <ProfileTab value="goals" icon={Target} label="Metas" soon={placeholderTabs.has("goals")} />
+            <ProfileTab value="indicators" icon={LineChartIcon} label="Indicadores" soon={placeholderTabs.has("indicators")} />
+            <ProfileTab value="reviews" icon={ClipboardCheck} label="Avaliações" soon={placeholderTabs.has("reviews")} />
+            <ProfileTab value="feedbacks" icon={MessageSquare} label="Feedbacks" soon={placeholderTabs.has("feedbacks")} />
+            <ProfileTab value="oneonone" icon={CalendarPlus} label="1:1" soon={placeholderTabs.has("oneonone")} />
+            <ProfileTab value="development" icon={Activity} label="Desenvolvimento" soon={placeholderTabs.has("development")} />
+            <ProfileTab value="history" icon={History} label="Histórico" />
           </TabsList>
         </div>
 
@@ -491,23 +488,89 @@ function EmployeeProfilePage() {
   );
 }
 
-function Detail({
+function MetaPill({
   icon: Icon,
   label,
   value,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
   label: string;
   value: string;
 }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+    <div className="flex min-w-0 items-center gap-1.5">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
       <span className="text-muted-foreground">{label}:</span>
-      <span className="truncate text-foreground">{value}</span>
+      <span className="truncate font-medium text-foreground">{value}</span>
     </div>
   );
 }
+
+function StatItem({
+  label,
+  value,
+  sublabel,
+  tone,
+}: {
+  label: string;
+  value: React.ReactNode;
+  sublabel?: string;
+  tone?: "excellent" | "good" | "attention" | "risk" | "critical" | "neutral";
+}) {
+  return (
+    <div className="flex min-w-[120px] flex-col gap-0.5">
+      <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <div className="flex items-baseline gap-2">
+        <span
+          className={cn(
+            "text-lg font-semibold tabular-nums text-foreground",
+            tone === "excellent" && "text-status-excellent",
+            tone === "good" && "text-status-good",
+            tone === "attention" && "text-status-attention",
+            tone === "risk" && "text-status-risk",
+            tone === "critical" && "text-status-critical",
+          )}
+        >
+          {value}
+        </span>
+      </div>
+      {sublabel && <span className="text-[11px] text-muted-foreground">{sublabel}</span>}
+    </div>
+  );
+}
+
+function ProfileTab({
+  value,
+  icon: Icon,
+  label,
+  soon,
+}: {
+  value: EmployeeProfileTab;
+  icon: LucideIcon;
+  label: string;
+  soon?: boolean;
+}) {
+  return (
+    <TabsTrigger
+      value={value}
+      className={cn(
+        "relative h-9 gap-1.5 rounded-md border border-transparent bg-transparent px-3 text-xs font-medium text-muted-foreground transition data-[state=active]:border-border data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm hover:text-foreground",
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+      {soon && (
+        <span className="ml-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+          em breve
+        </span>
+      )}
+    </TabsTrigger>
+  );
+}
+
+
 
 type DecisionInput = {
   score: number | null;
