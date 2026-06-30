@@ -28,7 +28,7 @@ import {
 import { useEmployees } from "@/lib/php-data";
 import type { ScoreStatus } from "@/components/php/types";
 import { CreateGoalDialog } from "@/components/php/CreateGoalDialog";
-import { useLocalGoals, type LocalGoal } from "@/features/goals/local-goals-store";
+import { useGoals, useCreateGoal, useCompleteGoal, type GoalRow } from "@/lib/goals-data";
 
 export const Route = createFileRoute("/_app/metas")({
   head: () => ({
