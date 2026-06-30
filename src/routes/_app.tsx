@@ -40,10 +40,19 @@ function AppLayout() {
 
     lovableCloudAuth
       .getVerifiedSession({ ensureProfile: true })
-      .then((auth) => {
+      .then(async (auth) => {
         if (!mounted) return;
-        if (!auth) redirectToAuth();
-        else setChecked(true);
+        if (!auth) {
+          redirectToAuth();
+          return;
+        }
+        const role = await getCurrentUserRole();
+        if (!mounted) return;
+        if (role === "employee") {
+          navigate({ to: "/funcionario", replace: true });
+          return;
+        }
+        setChecked(true);
       })
       .catch((err) => {
         console.error("Lovable Cloud protected route auth error", err);
