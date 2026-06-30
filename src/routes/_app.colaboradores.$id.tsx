@@ -46,6 +46,7 @@ import { MetricCard } from "@/components/php/MetricCard";
 import { AlertCard } from "@/components/php/AlertCard";
 import { FilterBar } from "@/components/php/FilterBar";
 import { EmployeeFormDialog } from "@/components/php/EmployeeFormDialog";
+import { EmployeeAccessButton } from "@/components/php/EmployeeAccessButton";
 import { scoreToStatus, scoreLabel } from "@/components/php/types";
 import {
   usePerformanceWorkspaceData,
