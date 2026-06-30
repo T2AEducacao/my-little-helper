@@ -109,10 +109,18 @@ function EmployeeProfilePage() {
   const { data: employee, isLoading } = useEmployee(id);
   const { data: employees = [] } = useEmployees();
   const { data: departments = [] } = useDepartments();
-  const { data: snapshots = [] } = useEmployeeSnapshots(id);
+  const { data: dbSnapshots = [] } = useEmployeeSnapshots(id);
   const { data: alerts = [] } = useEmployeeAlerts(id);
   const { data: activity = [] } = useEmployeeActivity(id);
   const performanceData = usePerformanceWorkspaceData(employees);
+  const snapshots = useMemo(() => {
+    const derivedSnapshots = performanceData.snapshots.filter(
+      (snapshot) => snapshot.employee_id === id,
+    );
+    return [...dbSnapshots, ...derivedSnapshots]
+      .sort((a, b) => b.snapshot_date.localeCompare(a.snapshot_date))
+      .filter((snapshot, index, all) => all.findIndex((item) => item.id === snapshot.id) === index);
+  }, [dbSnapshots, id, performanceData.snapshots]);
 
   const [editOpen, setEditOpen] = useState(false);
   const [rangeDays, setRangeDays] = useState(90);
@@ -196,7 +204,9 @@ function EmployeeProfilePage() {
               </div>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {employee.role ?? "—"}
-                {employee.seniority && <span className="text-muted-foreground/70"> · {employee.seniority}</span>}
+                {employee.seniority && (
+                  <span className="text-muted-foreground/70"> · {employee.seniority}</span>
+                )}
               </p>
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
                 <MetaPill icon={Users} label="Área" value={deptName} />
@@ -231,7 +241,9 @@ function EmployeeProfilePage() {
                 {decisionSummary.trendLabel}
               </span>
             </div>
-            <p className="text-sm font-medium leading-5 text-foreground">{decisionSummary.reason}.</p>
+            <p className="text-sm font-medium leading-5 text-foreground">
+              {decisionSummary.reason}.
+            </p>
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <Button size="sm" onClick={() => toast(decisionSummary.actionToast)}>
                 <ActionIcon className="h-4 w-4" />
@@ -322,12 +334,42 @@ function EmployeeProfilePage() {
         <div className="-mx-1 overflow-x-auto">
           <TabsList className="inline-flex h-10 w-max gap-1 bg-transparent p-0">
             <ProfileTab value="overview" icon={Sparkles} label="Visão geral" />
-            <ProfileTab value="goals" icon={Target} label="Metas" soon={placeholderTabs.has("goals")} />
-            <ProfileTab value="indicators" icon={LineChartIcon} label="Indicadores" soon={placeholderTabs.has("indicators")} />
-            <ProfileTab value="reviews" icon={ClipboardCheck} label="Avaliações" soon={placeholderTabs.has("reviews")} />
-            <ProfileTab value="feedbacks" icon={MessageSquare} label="Feedbacks" soon={placeholderTabs.has("feedbacks")} />
-            <ProfileTab value="oneonone" icon={CalendarPlus} label="1:1" soon={placeholderTabs.has("oneonone")} />
-            <ProfileTab value="development" icon={Activity} label="Desenvolvimento" soon={placeholderTabs.has("development")} />
+            <ProfileTab
+              value="goals"
+              icon={Target}
+              label="Metas"
+              soon={placeholderTabs.has("goals")}
+            />
+            <ProfileTab
+              value="indicators"
+              icon={LineChartIcon}
+              label="Indicadores"
+              soon={placeholderTabs.has("indicators")}
+            />
+            <ProfileTab
+              value="reviews"
+              icon={ClipboardCheck}
+              label="Avaliações"
+              soon={placeholderTabs.has("reviews")}
+            />
+            <ProfileTab
+              value="feedbacks"
+              icon={MessageSquare}
+              label="Feedbacks"
+              soon={placeholderTabs.has("feedbacks")}
+            />
+            <ProfileTab
+              value="oneonone"
+              icon={CalendarPlus}
+              label="1:1"
+              soon={placeholderTabs.has("oneonone")}
+            />
+            <ProfileTab
+              value="development"
+              icon={Activity}
+              label="Desenvolvimento"
+              soon={placeholderTabs.has("development")}
+            />
             <ProfileTab value="history" icon={History} label="Histórico" />
           </TabsList>
         </div>
@@ -576,8 +618,6 @@ function ProfileTab({
     </TabsTrigger>
   );
 }
-
-
 
 type DecisionInput = {
   score: number | null;
