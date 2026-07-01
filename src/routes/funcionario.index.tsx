@@ -34,10 +34,10 @@ function EmployeeGoalsPage() {
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <div>
-        <h2 className="text-xl font-semibold tracking-tight">Minhas Metas</h2>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">Minhas Metas</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
           Acompanhe as metas atribuídas pelo seu líder.
         </p>
       </div>
@@ -45,14 +45,14 @@ function EmployeeGoalsPage() {
       <Tabs defaultValue="active">
         <TabsList>
           <TabsTrigger value="active">
-            Minhas Metas
-            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] tabular-nums">
+            Em andamento
+            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
               {pending.length}
             </span>
           </TabsTrigger>
           <TabsTrigger value="done">
             Concluídas
-            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] tabular-nums">
+            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
               {completed.length}
             </span>
           </TabsTrigger>
