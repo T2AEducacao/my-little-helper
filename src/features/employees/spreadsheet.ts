@@ -15,23 +15,7 @@ export type EmployeeImportResult = {
   skipped: { rowNumber: number; reason: string }[];
 };
 
-const EXPORT_HEADERS = [
-  "ID",
-  "Nome",
-  "E-mail",
-  "Status",
-  "Área",
-  "Cargo",
-  "Gestor",
-  "Senioridade",
-  "Data de admissão",
-  "Modelo de trabalho",
-  "Tipo de contrato",
-  "Perfil comportamental",
-  "Observações",
-  "URL da foto",
-  "ID do perfil de acesso",
-] as const;
+const EXPORT_HEADERS = ["Nome", "Status", "Área", "Modelo de trabalho"] as const;
 
 const STATUS_BY_LABEL: Record<string, EmployeeStatus> = {
   ativo: "active",
@@ -125,23 +109,11 @@ export async function exportEmployeesSpreadsheet(
 ) {
   const XLSX = await import("xlsx");
   const departmentById = new Map(departments.map((department) => [department.id, department.name]));
-  const employeeById = new Map(employees.map((employee) => [employee.id, employee.name]));
   const data = employees.map((employee) => ({
-    ID: employee.id,
     Nome: employee.name,
-    "E-mail": employee.email ?? "",
     Status: employee.status,
     Área: employee.department_id ? (departmentById.get(employee.department_id) ?? "") : "",
-    Cargo: employee.role ?? "",
-    Gestor: employee.manager_id ? (employeeById.get(employee.manager_id) ?? "") : "",
-    Senioridade: employee.seniority ?? "",
-    "Data de admissão": employee.hire_date ?? "",
     "Modelo de trabalho": employee.location ?? "",
-    "Tipo de contrato": employee.contract_type ?? "",
-    "Perfil comportamental": employee.behavioral_profile ?? "",
-    Observações: employee.notes ?? "",
-    "URL da foto": employee.avatar_url ?? "",
-    "ID do perfil de acesso": employee.profile_id ?? "",
   }));
 
   const sheet = XLSX.utils.json_to_sheet(data, { header: [...EXPORT_HEADERS] });
