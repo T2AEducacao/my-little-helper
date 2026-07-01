@@ -60,7 +60,7 @@ export const Route = createFileRoute("/_app/")({
       {
         name: "description",
         content:
-          "Priorize ações, acompanhe riscos e tome decisões rápidas sobre a performance do efetivo.",
+          "Acompanhe riscos, metas e evolução para tomar decisões rápidas sobre a performance do efetivo.",
       },
     ],
   }),
@@ -75,7 +75,6 @@ function ManagementCenterPage() {
   const snapshots = performanceData.snapshots;
   const alerts = performanceData.actions;
   const goals = performanceData.goals;
-  const progressSummary = performanceData.progressSummary;
 
   const [range, setRange] = useState<RangeValue>("30");
 
@@ -155,10 +154,12 @@ function ManagementCenterPage() {
     (a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity],
   );
 
-  const actionCount = openAlerts.length + attention.length + withoutRecentScore;
+  const priorityCount = openAlerts.length + attention.length + withoutRecentScore;
   const distribution = buildDistribution(performanceEmployees, latest);
   const series = buildEvolutionSeries(snapshots, Number(range));
   const goalsAtRisk = goals.filter((goal) => goal.status === "risk").length;
+  const achievedGoals = goals.filter((goal) => goal.status === "achieved").length;
+  const onTrackGoals = goals.filter((goal) => goal.status === "on_track").length;
 
   // Team status strip buckets
   const statusBuckets = useMemo(() => {
@@ -183,7 +184,7 @@ function ManagementCenterPage() {
       ? sparklineData[sparklineData.length - 1].score - sparklineData[0].score
       : null;
 
-  const topActions = useMemo(() => {
+  const topPriorities = useMemo(() => {
     const items: {
       id: string;
       title: string;
@@ -197,7 +198,7 @@ function ManagementCenterPage() {
       items.push({
         id: `drop-${item.employee.id}`,
         title: `${item.employee.name} caiu ${Math.abs(item.current - (item.previous ?? item.current)).toFixed(1)} pts`,
-        reason: "Investigue bloqueios e proponha próximo passo.",
+        reason: "Abra o perfil para entender metas, histórico e contexto.",
         priority: "alta",
         to: "/colaboradores/$id",
         params: { id: item.employee.id },
@@ -207,7 +208,7 @@ function ManagementCenterPage() {
       items.push({
         id: `att-${item.employee.id}`,
         title: `${item.employee.name} em atenção`,
-        reason: "Score abaixo da faixa saudável. Marque uma conversa.",
+        reason: "Score abaixo da faixa saudável. Revise o contexto individual.",
         priority: "média",
         to: "/colaboradores/$id",
         params: { id: item.employee.id },
@@ -217,7 +218,7 @@ function ManagementCenterPage() {
       items.push({
         id: "missing-kpi",
         title: `${withoutRecentScore} ativo(s) sem KPI recente`,
-        reason: "Sem dados, fica difícil decidir. Registre avaliação.",
+        reason: "Sem dados, a leitura da equipe fica incompleta.",
         priority: "baixa",
         to: "/colaboradores",
       });
@@ -249,14 +250,14 @@ function ManagementCenterPage() {
         total={activeEmployees.length}
       />
 
-      {/* Hero row: O que fazer hoje (2/3) + Score da equipe com sparkline (1/3) */}
+      {/* Hero row: Prioridades do dia (2/3) + Score da equipe com sparkline (1/3) */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <TodayActionPanel
-          actionCount={actionCount}
+        <TodayPriorityPanel
+          priorityCount={priorityCount}
           openAlertsCount={openAlerts.length}
           attentionCount={attention.length}
           withoutScoreCount={withoutRecentScore}
-          actions={topActions}
+          priorities={topPriorities}
           loading={loadingEmployees}
         />
         <TeamScorePanel score={teamScore} series={sparklineData} delta={sparkDelta} />
@@ -449,13 +450,13 @@ function ManagementCenterPage() {
         </SectionCard>
       </div>
 
-      {/* Alertas + Metas em risco */}
+      {/* Sinais + cobertura de indicadores */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <SectionCard title="Alertas prioritários" description="Sinais abertos por gravidade.">
+        <SectionCard title="Sinais prioritários" description="Riscos e pontos de atenção ativos.">
           {sortedAlerts.length === 0 ? (
             <EmptyState
               icon={CheckCircle2}
-              title="Sem alertas abertos"
+              title="Sem sinais críticos"
               description="Nenhum risco crítico registrado no momento."
             />
           ) : (
@@ -477,21 +478,15 @@ function ManagementCenterPage() {
         </SectionCard>
 
         <SectionCard
-          title="Progresso de hoje"
-          description="Avanço operacional gerado pelas ações concluídas."
+          title="Cobertura de indicadores"
+          description="Qualidade dos dados disponíveis para decisão."
           contentClassName="space-y-3"
         >
           <ProgressLine
             icon={CheckCircle2}
-            label="Pendências resolvidas hoje"
-            value={progressSummary.resolvedToday}
-            tone="excellent"
-          />
-          <ProgressLine
-            icon={Users}
-            label="Pessoas com ações tratadas"
-            value={progressSummary.peopleWithResolvedActions}
-            tone="info"
+            label="Colaboradores com KPI"
+            value={scoredActive.length}
+            tone={scoredActive.length > 0 ? "good" : "neutral"}
           />
           <ProgressLine
             icon={Target}
@@ -501,9 +496,15 @@ function ManagementCenterPage() {
           />
           <ProgressLine
             icon={CheckCircle2}
-            label="Encaminhamentos gerados"
-            value={progressSummary.generatedFollowUps}
-            tone="info"
+            label="Metas no prazo"
+            value={onTrackGoals}
+            tone="good"
+          />
+          <ProgressLine
+            icon={Sparkles}
+            label="Metas atingidas"
+            value={achievedGoals}
+            tone="excellent"
           />
         </SectionCard>
       </div>
@@ -565,19 +566,19 @@ function TeamStatusStrip({
   );
 }
 
-function TodayActionPanel({
-  actionCount,
+function TodayPriorityPanel({
+  priorityCount,
   openAlertsCount,
   attentionCount,
   withoutScoreCount,
-  actions,
+  priorities,
   loading,
 }: {
-  actionCount: number;
+  priorityCount: number;
   openAlertsCount: number;
   attentionCount: number;
   withoutScoreCount: number;
-  actions: {
+  priorities: {
     id: string;
     title: string;
     reason: string;
@@ -587,7 +588,7 @@ function TodayActionPanel({
   }[];
   loading: boolean;
 }) {
-  const isUrgent = actionCount > 0;
+  const isUrgent = priorityCount > 0;
   return (
     <section
       className={cn(
@@ -604,14 +605,14 @@ function TodayActionPanel({
       <div className="flex flex-col gap-3 pl-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            O que preciso fazer hoje
+            Prioridades do dia
           </p>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-5xl font-semibold tracking-tight tabular-nums text-foreground">
-              {actionCount}
+              {priorityCount}
             </span>
             <span className="text-sm text-muted-foreground">
-              {actionCount === 1 ? "ação" : "ações"}
+              {priorityCount === 1 ? "sinal" : "sinais"}
             </span>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -624,30 +625,32 @@ function TodayActionPanel({
       <div className="pl-2">
         {loading ? (
           <p className="text-sm text-muted-foreground">Carregando prioridades...</p>
-        ) : actions.length === 0 ? (
+        ) : priorities.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Nada crítico para agir agora. Aproveite para reconhecer destaques.
+            Nada crítico agora. Acompanhe metas e reconheça os destaques da equipe.
           </p>
         ) : (
           <ul className="divide-y divide-border rounded-lg border border-border/70 bg-background/40">
-            {actions.map((action) => {
+            {priorities.map((priority) => {
               const dotTone =
-                action.priority === "alta"
+                priority.priority === "alta"
                   ? "bg-status-critical"
-                  : action.priority === "média"
+                  : priority.priority === "média"
                     ? "bg-status-attention"
                     : "bg-status-info";
               return (
-                <li key={action.id}>
+                <li key={priority.id}>
                   <Link
-                    to={action.to}
-                    params={action.params}
+                    to={priority.to}
+                    params={priority.params}
                     className="flex items-center gap-3 px-3 py-3 transition hover:bg-muted/40 sm:py-2.5"
                   >
                     <span className={cn("h-2 w-2 shrink-0 rounded-full", dotTone)} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">{action.title}</p>
-                      <p className="truncate text-xs text-muted-foreground">{action.reason}</p>
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {priority.title}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">{priority.reason}</p>
                     </div>
                     <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                   </Link>
