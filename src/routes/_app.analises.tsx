@@ -56,7 +56,6 @@ import { Button } from "@/components/ui/button";
 
 import {
   buildEvolutionSeries,
-  initials,
   latestSnapshotsByEmployee,
   useDepartments,
   useEmployees,
