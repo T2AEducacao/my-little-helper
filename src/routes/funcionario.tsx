@@ -11,9 +11,6 @@ export const Route = createFileRoute("/funcionario")({
   ssr: false,
   component: EmployeeLayout,
 });
-  ssr: false,
-  component: EmployeeLayout,
-});
 
 function EmployeeLayout() {
   const navigate = useNavigate();
