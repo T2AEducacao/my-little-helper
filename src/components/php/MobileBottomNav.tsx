@@ -1,19 +1,18 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ChartNoAxesCombined, LayoutDashboard, ListChecks, Target, Users } from "lucide-react";
+import { ChartNoAxesCombined, LayoutDashboard, Target, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [
   { title: "Visão", url: "/", icon: LayoutDashboard },
   { title: "Colaboradores", url: "/colaboradores", icon: Users },
-  { title: "Análises", url: "/analises", icon: ChartNoAxesCombined },
-  { title: "Ações", url: "/alertas", icon: ListChecks },
   { title: "Metas", url: "/metas", icon: Target },
+  { title: "Análises", url: "/analises", icon: ChartNoAxesCombined },
 ] as const;
 
 export function MobileBottomNav() {
   const currentPath = useRouterState({ select: (s) => s.location.pathname });
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-background/95 backdrop-blur md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border bg-background/95 backdrop-blur md:hidden">
       {ITEMS.map((item) => {
         const active = item.url === "/" ? currentPath === "/" : currentPath.startsWith(item.url);
         return (

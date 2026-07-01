@@ -142,7 +142,7 @@ type Bottleneck = {
   subject: string;
   fact: string;
   tone: "critical" | "risk" | "attention";
-  to: "/alertas" | "/metas" | "/colaboradores";
+  to: "/metas" | "/colaboradores";
   ctaLabel: string;
 };
 
@@ -257,7 +257,7 @@ function useAnaliseModel(range: RangeValue): AnaliseModel {
       distribution,
       bottlenecks,
     } satisfies AnaliseModel;
-  }, [employees, departments, workspace, range]);
+  }, [departments, workspace, range]);
 }
 
 function buildAreaStats(
@@ -442,8 +442,8 @@ function buildBottlenecks(args: {
       subject: "Alertas críticos",
       fact: `${args.criticalAlerts} sem resolução.`,
       tone: "critical",
-      to: "/alertas",
-      ctaLabel: "Abrir ações",
+      to: "/colaboradores",
+      ctaLabel: "Ver colaboradores",
     });
   }
 

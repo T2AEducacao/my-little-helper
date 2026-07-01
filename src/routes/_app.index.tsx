@@ -25,7 +25,6 @@ import {
   ArrowRight,
   CheckCircle2,
   LineChart as LineChartIcon,
-  ListChecks,
   Sparkles,
   Target,
   TrendingDown,
@@ -190,7 +189,7 @@ function ManagementCenterPage() {
       title: string;
       reason: string;
       priority: "alta" | "média" | "baixa";
-      to: "/colaboradores/$id" | "/colaboradores" | "/alertas";
+      to: "/colaboradores/$id" | "/colaboradores";
       params?: { id: string };
     }[] = [];
 
@@ -204,15 +203,6 @@ function ManagementCenterPage() {
         params: { id: item.employee.id },
       }),
     );
-    if (criticalAlerts > 0) {
-      items.push({
-        id: "critical-alerts",
-        title: `${criticalAlerts} alerta(s) crítico(s) abertos`,
-        reason: "Resolva o que exige decisão imediata.",
-        priority: "alta",
-        to: "/alertas",
-      });
-    }
     attention.slice(0, 2).forEach((item) =>
       items.push({
         id: `att-${item.employee.id}`,
@@ -233,7 +223,7 @@ function ManagementCenterPage() {
       });
     }
     return items.slice(0, 4);
-  }, [drops, criticalAlerts, attention, withoutRecentScore]);
+  }, [drops, attention, withoutRecentScore]);
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -241,17 +231,11 @@ function ManagementCenterPage() {
         title="Central de Gestão"
         description="Abra o dia sabendo onde agir: riscos, pessoas em atenção, destaques e próximos passos."
         actions={
-          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:w-auto">
+          <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:flex-wrap lg:w-auto">
             <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
               <Link to="/colaboradores">
                 <Users className="h-4 w-4" />
-                Pessoas
-              </Link>
-            </Button>
-            <Button asChild size="sm" className="w-full sm:w-auto">
-              <Link to="/alertas">
-                <ListChecks className="h-4 w-4" />
-                Ver ações
+                Colaboradores
               </Link>
             </Button>
           </div>
@@ -467,18 +451,7 @@ function ManagementCenterPage() {
 
       {/* Alertas + Metas em risco */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <SectionCard
-          title="Alertas prioritários"
-          description="Sinais abertos por gravidade."
-          action={
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/alertas">
-                Ver todos
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          }
-        >
+        <SectionCard title="Alertas prioritários" description="Sinais abertos por gravidade.">
           {sortedAlerts.length === 0 ? (
             <EmptyState
               icon={CheckCircle2}
@@ -506,14 +479,6 @@ function ManagementCenterPage() {
         <SectionCard
           title="Progresso de hoje"
           description="Avanço operacional gerado pelas ações concluídas."
-          action={
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/alertas">
-                Ver fila
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          }
           contentClassName="space-y-3"
         >
           <ProgressLine
@@ -535,7 +500,7 @@ function ManagementCenterPage() {
             tone={goalsAtRisk > 0 ? "risk" : "neutral"}
           />
           <ProgressLine
-            icon={ListChecks}
+            icon={CheckCircle2}
             label="Encaminhamentos gerados"
             value={progressSummary.generatedFollowUps}
             tone="info"
@@ -617,7 +582,7 @@ function TodayActionPanel({
     title: string;
     reason: string;
     priority: "alta" | "média" | "baixa";
-    to: "/colaboradores/$id" | "/colaboradores" | "/alertas";
+    to: "/colaboradores/$id" | "/colaboradores";
     params?: { id: string };
   }[];
   loading: boolean;
@@ -654,12 +619,6 @@ function TodayActionPanel({
             {withoutScoreCount} sem KPI recente
           </p>
         </div>
-        <Button asChild size="sm" className="w-full sm:w-auto">
-          <Link to="/alertas">
-            <ListChecks className="h-4 w-4" />
-            Abrir fila
-          </Link>
-        </Button>
       </div>
 
       <div className="pl-2">
@@ -824,7 +783,7 @@ function PersonRow({
   avatarUrl?: string | null;
   score: number;
   delta: number | null;
-  to: "/colaboradores/$id" | "/alertas";
+  to: "/colaboradores/$id";
   params?: { id: string };
 }) {
   const status = scoreToStatus(score);

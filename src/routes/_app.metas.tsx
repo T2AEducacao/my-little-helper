@@ -6,7 +6,6 @@ import {
   CalendarClock,
   CheckCircle2,
   ChevronDown,
-  ListChecks,
   Plus,
   Target,
   TrendingUp,
@@ -150,13 +149,7 @@ function GoalsPage() {
         title="Metas"
         description="Veja em segundos o que precisa de atenção e o que está caminhando bem."
         actions={
-          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:w-auto">
-            <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
-              <Link to="/alertas">
-                <ListChecks className="h-4 w-4" />
-                Ver ações
-              </Link>
-            </Button>
+          <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:flex-wrap lg:w-auto">
             <Button size="sm" className="w-full sm:w-auto" onClick={() => setCreateOpen(true)}>
               <Plus className="h-4 w-4" />
               Criar Meta

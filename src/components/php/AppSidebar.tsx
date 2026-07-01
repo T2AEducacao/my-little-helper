@@ -14,7 +14,6 @@ import {
   BarChart3,
   ChartNoAxesCombined,
   LayoutDashboard,
-  ListChecks,
   Settings,
   Target,
   Users,
@@ -25,7 +24,6 @@ const NAV_ITEMS = [
   { title: "Colaboradores", url: "/colaboradores", icon: Users },
   { title: "Metas", url: "/metas", icon: Target },
   { title: "Análises", url: "/analises", icon: ChartNoAxesCombined },
-  { title: "Ações", url: "/alertas", icon: ListChecks },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ] as const;
 
