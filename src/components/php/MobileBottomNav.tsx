@@ -6,7 +6,7 @@ const ITEMS = [
   { title: "Visão", url: "/", icon: LayoutDashboard },
   { title: "Ações", url: "/alertas", icon: ListChecks },
   { title: "Pessoas", url: "/colaboradores", icon: Users },
-  { title: "KPIs", url: "/metas", icon: Target },
+  { title: "Metas", url: "/metas", icon: Target },
   { title: "Análises", url: "/analises", icon: ChartNoAxesCombined },
 ] as const;
 
