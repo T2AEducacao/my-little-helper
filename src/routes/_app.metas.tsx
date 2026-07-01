@@ -50,6 +50,7 @@ export const Route = createFileRoute("/_app/metas")({
 });
 
 type GroupKey = "risk" | "due_soon" | "on_track" | "achieved";
+type DbGoalFilter = "all" | "pending" | "completed" | "overdue";
 
 const GROUP_META: Record<
   GroupKey,
@@ -629,8 +630,24 @@ function DbGoalsSection({
   employeesById: Map<string, EmployeeRow>;
   onComplete: (id: string) => void;
 }) {
+  const [filter, setFilter] = useState<DbGoalFilter>("all");
   const pendingGoals = goals.filter((goal) => goal.status === "pending");
   const completedGoals = goals.filter((goal) => goal.status === "completed");
+  const overdueGoals = pendingGoals.filter(isGoalOverdue);
+  const visiblePendingGoals =
+    filter === "all" || filter === "pending"
+      ? pendingGoals
+      : filter === "overdue"
+        ? overdueGoals
+        : [];
+  const visibleCompletedGoals = filter === "all" || filter === "completed" ? completedGoals : [];
+  const visibleCount = visiblePendingGoals.length + visibleCompletedGoals.length;
+  const filters: { value: DbGoalFilter; label: string; count: number }[] = [
+    { value: "all", label: "Todas", count: goals.length },
+    { value: "pending", label: "Em andamento", count: pendingGoals.length },
+    { value: "completed", label: "Concluídas", count: completedGoals.length },
+    { value: "overdue", label: "Atrasadas", count: overdueGoals.length },
+  ];
 
   return (
     <SectionCard
@@ -645,31 +662,69 @@ function DbGoalsSection({
         />
       ) : (
         <div className="overflow-hidden rounded-xl border border-border">
+          <div className="flex flex-wrap gap-2 border-b border-border bg-card px-4 py-3">
+            {filters.map((item) => {
+              const active = filter === item.value;
+              return (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => setFilter(item.value)}
+                  className={cn(
+                    "inline-flex h-8 items-center gap-2 rounded-md border px-3 text-xs font-medium transition-colors",
+                    active
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {item.label}
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-0.5 text-[10px] tabular-nums",
+                      active ? "bg-primary-foreground/20" : "bg-muted",
+                    )}
+                  >
+                    {item.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
           <div className="hidden grid-cols-[minmax(220px,1fr)_180px_140px_250px] items-center gap-6 border-b border-border bg-muted/20 px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground lg:grid">
             <span>Meta</span>
             <span>Responsável</span>
             <span>Prazo</span>
             <span className="text-right">Status</span>
           </div>
-          <div>
-            {pendingGoals.length > 0 && (
-              <DbGoalsGroup
-                title="Em andamento"
-                goals={pendingGoals}
-                employeesById={employeesById}
-                onComplete={onComplete}
+          {visibleCount === 0 ? (
+            <div className="p-6">
+              <EmptyState
+                icon={Target}
+                title="Nenhuma meta neste filtro"
+                description="Troque o filtro para visualizar outras metas cadastradas."
               />
-            )}
-            {completedGoals.length > 0 && (
-              <DbGoalsGroup
-                title="Concluídas"
-                goals={completedGoals}
-                employeesById={employeesById}
-                onComplete={onComplete}
-                muted
-              />
-            )}
-          </div>
+            </div>
+          ) : (
+            <div>
+              {visiblePendingGoals.length > 0 && (
+                <DbGoalsGroup
+                  title={filter === "overdue" ? "Atrasadas" : "Em andamento"}
+                  goals={visiblePendingGoals}
+                  employeesById={employeesById}
+                  onComplete={onComplete}
+                />
+              )}
+              {visibleCompletedGoals.length > 0 && (
+                <DbGoalsGroup
+                  title="Concluídas"
+                  goals={visibleCompletedGoals}
+                  employeesById={employeesById}
+                  onComplete={onComplete}
+                  muted
+                />
+              )}
+            </div>
+          )}
         </div>
       )}
     </SectionCard>
@@ -808,4 +863,10 @@ function getLocalDueInfo(
   if (days === 0) return { label: "Vence hoje", tone: "risk" };
   if (days <= 7) return { label: `Em ${days}d`, tone: "attention" };
   return { label: `Em ${days}d`, tone: "good" };
+}
+
+function isGoalOverdue(goal: GoalRow): boolean {
+  if (goal.status !== "pending" || !goal.deadline) return false;
+  const days = daysUntil(goal.deadline);
+  return days !== null && days < 0;
 }
