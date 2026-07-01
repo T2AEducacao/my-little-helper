@@ -86,7 +86,7 @@ function EmployeeGoalsPage() {
               description="Seu histórico de metas finalizadas aparecerá aqui."
             />
           ) : (
-            <div className="divide-y divide-border rounded-xl border border-border bg-card">
+            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               {completed.map((g) => (
                 <CompletedGoalRow key={g.id} goal={g} />
               ))}
