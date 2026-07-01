@@ -31,7 +31,7 @@ import {
   type PerformanceGoal,
   type PerformanceGoalStatus,
 } from "@/features/performance/workspace-data";
-import { useEmployees } from "@/lib/php-data";
+import { useEmployees, type EmployeeRow } from "@/lib/php-data";
 import type { ScoreStatus } from "@/components/php/types";
 import { CreateGoalDialog } from "@/components/php/CreateGoalDialog";
 import { useGoals, useCreateGoal, useCompleteGoal, type GoalRow } from "@/lib/goals-data";
@@ -626,7 +626,7 @@ function DbGoalsSection({
   onComplete,
 }: {
   goals: GoalRow[];
-  employeesById: Map<string, { id: string; name: string }>;
+  employeesById: Map<string, EmployeeRow>;
   onComplete: (id: string) => void;
 }) {
   return (
@@ -645,7 +645,9 @@ function DbGoalsSection({
           {goals.map((goal) => {
             const isDone = goal.status === "completed";
             const dueInfo = getLocalDueInfo(goal.deadline, goal.status);
-            const employeeName = employeesById.get(goal.employee_id)?.name ?? "Colaborador";
+            const employee = employeesById.get(goal.employee_id);
+            const employeeName = employee?.name ?? "Colaborador";
+            const avatarUrl = employee?.avatar_display_url ?? employee?.avatar_url;
             return (
               <article
                 key={goal.id}
@@ -667,6 +669,7 @@ function DbGoalsSection({
 
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Avatar className="h-5 w-5">
+                    {avatarUrl && <AvatarImage src={avatarUrl} alt={employeeName} />}
                     <AvatarFallback className="bg-primary/10 text-[10px] text-primary">
                       {initials(employeeName)}
                     </AvatarFallback>
