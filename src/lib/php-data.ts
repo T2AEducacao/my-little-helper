@@ -416,7 +416,8 @@ export function initials(name: string): string {
 }
 
 async function withSignedEmployeeAvatars(employees: EmployeeRow[]): Promise<EmployeeRow[]> {
-  return Promise.all(employees.map(withSignedEmployeeAvatar));
+  const results = await Promise.all(employees.map((e) => withSignedEmployeeAvatar(e)));
+  return results.filter((e): e is EmployeeRow => e !== null);
 }
 
 async function withSignedEmployeeAvatar(employee: EmployeeRow | null): Promise<EmployeeRow | null> {
