@@ -85,7 +85,7 @@ export const Route = createFileRoute("/_app/colaboradores")({
       {
         name: "description",
         content:
-          "Gerencie o efetivo, acompanhe KPIs individuais e identifique colaboradores em destaque ou atenção.",
+          "Gerencie o efetivo, acompanhe metas individuais e identifique colaboradores em destaque ou atenção.",
       },
     ],
   }),

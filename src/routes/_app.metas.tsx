@@ -177,7 +177,7 @@ function GoalsPage() {
         onComplete={(id) => completeGoalMut.mutate(id)}
       />
 
-      {/* Hero KPIs */}
+      {/* Hero metas */}
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-card)]">
         <div className="grid grid-cols-2 lg:grid-cols-4">
           <KpiCell

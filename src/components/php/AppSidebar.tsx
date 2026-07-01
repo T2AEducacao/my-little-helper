@@ -67,7 +67,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-sidebar-border px-3 py-3 group-data-[collapsible=icon]:hidden">
         <p className="px-2 text-[11px] text-sidebar-foreground/60">
-          Acompanhe KPIs, metas, evolução e desempenho do efetivo.
+          Acompanhe metas, evolução e desempenho do efetivo.
         </p>
       </SidebarFooter>
     </Sidebar>

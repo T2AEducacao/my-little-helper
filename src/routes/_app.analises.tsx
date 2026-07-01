@@ -830,7 +830,7 @@ function ExecutiveSummaryBlock({ model }: { model: AnaliseModel }) {
       hint:
         model.scored.length > 0
           ? `${model.attentionRiskCount} de ${model.scored.length} pessoas`
-          : "Sem KPIs registrados",
+          : "Sem metas registradas",
       tone:
         model.attentionRiskShare >= 0.3
           ? "risk"
@@ -1013,7 +1013,7 @@ function AreaComparisonBlock({ model }: { model: AnaliseModel }) {
           <EmptyState
             icon={BarChart3}
             title="Nenhuma área para comparar"
-            description="Cadastre áreas e registre KPIs para liberar este comparativo."
+            description="Cadastre áreas e registre metas para liberar este comparativo."
           />
         </div>
       ) : (
@@ -1208,7 +1208,7 @@ function DistributionBlock({ model }: { model: AnaliseModel }) {
         <EmptyState
           icon={BarChart3}
           title="Sem distribuição para mostrar"
-          description="Registre KPIs para visualizar a faixa de cada pessoa."
+          description="Registre metas para visualizar a faixa de cada pessoa."
         />
       ) : (
         <div className="space-y-3">

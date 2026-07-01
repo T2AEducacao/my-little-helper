@@ -216,8 +216,8 @@ function ManagementCenterPage() {
     );
     if (withoutRecentScore > 0) {
       items.push({
-        id: "missing-kpi",
-        title: `${withoutRecentScore} ativo(s) sem KPI recente`,
+        id: "missing-goals",
+        title: `${withoutRecentScore} ativo(s) sem metas recentes`,
         reason: "Sem dados, a leitura da equipe fica incompleta.",
         priority: "baixa",
         to: "/colaboradores",
@@ -433,7 +433,7 @@ function ManagementCenterPage() {
           {scoredActive.length === 0 ? (
             <EmptyState
               title="Sem dados para distribuir"
-              description="Registre KPIs para visualizar a faixa de cada pessoa."
+              description="Registre metas para visualizar a faixa de cada pessoa."
             />
           ) : (
             distribution
@@ -484,7 +484,7 @@ function ManagementCenterPage() {
         >
           <ProgressLine
             icon={CheckCircle2}
-            label="Colaboradores com KPI"
+            label="Colaboradores com metas"
             value={scoredActive.length}
             tone={scoredActive.length > 0 ? "good" : "neutral"}
           />
@@ -530,7 +530,7 @@ function TeamStatusStrip({
     { status: "attention", label: "Atenção", count: buckets.get("attention") ?? 0 },
     { status: "risk", label: "Risco", count: buckets.get("risk") ?? 0 },
     { status: "critical", label: "Crítico", count: buckets.get("critical") ?? 0 },
-    { status: "missing", label: "Sem KPI", count: withoutScore },
+    { status: "missing", label: "Sem metas", count: withoutScore },
   ];
 
   return (
@@ -617,7 +617,7 @@ function TodayPriorityPanel({
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             {openAlertsCount} alerta(s) · {attentionCount} pessoa(s) em atenção ·{" "}
-            {withoutScoreCount} sem KPI recente
+            {withoutScoreCount} sem metas recentes
           </p>
         </div>
       </div>
