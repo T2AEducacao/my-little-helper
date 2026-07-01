@@ -461,7 +461,7 @@ function EmployeeProfilePage() {
               )}
             </SectionCard>
             <SectionCard
-              title="Ações recomendadas"
+              title="Pontos de atenção"
               description="Sugestões a partir dos dados atuais."
             >
               <Recommendations
