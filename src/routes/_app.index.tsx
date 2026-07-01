@@ -241,20 +241,20 @@ function ManagementCenterPage() {
         title="Central de Gestão"
         description="Abra o dia sabendo onde agir: riscos, pessoas em atenção, destaques e próximos passos."
         actions={
-          <>
-            <Button asChild variant="outline" size="sm">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:w-auto">
+            <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
               <Link to="/colaboradores">
                 <Users className="h-4 w-4" />
                 Pessoas
               </Link>
             </Button>
-            <Button asChild size="sm">
+            <Button asChild size="sm" className="w-full sm:w-auto">
               <Link to="/alertas">
                 <ListChecks className="h-4 w-4" />
                 Ver ações
               </Link>
             </Button>
-          </>
+          </div>
         }
       />
 
@@ -366,7 +366,7 @@ function ManagementCenterPage() {
         title="Mudanças desde a última atualização"
         description="O que mudou no time e pode mover sua prioridade hoje."
       >
-        <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <InlineStat
             icon={TrendingUp}
             label="Melhoraram"
@@ -568,7 +568,7 @@ function TeamStatusStrip({
   ];
 
   return (
-    <div className="flex flex-wrap items-stretch gap-x-6 gap-y-3 rounded-xl border border-border bg-card px-5 py-3 shadow-[var(--shadow-soft)]">
+    <div className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-card p-3 shadow-[var(--shadow-soft)] sm:grid-cols-3 lg:flex lg:flex-wrap lg:items-stretch lg:gap-x-6 lg:gap-y-3 lg:px-5">
       {items.map((item, idx) => {
         const tone: ScoreStatus =
           item.status === "missing" ? "neutral" : (item.status as ScoreStatus);
@@ -576,8 +576,8 @@ function TeamStatusStrip({
           <div
             key={item.label}
             className={cn(
-              "flex items-center gap-2.5",
-              idx > 0 && "border-l border-border/70 pl-6 first:border-0 first:pl-0",
+              "flex items-center gap-2 rounded-lg bg-muted/20 px-2.5 py-2 lg:rounded-none lg:bg-transparent lg:px-0 lg:py-0",
+              idx > 0 && "lg:border-l lg:border-border/70 lg:pl-6",
             )}
           >
             <span
@@ -636,7 +636,7 @@ function TodayActionPanel({
           isUrgent ? "bg-status-critical" : "bg-status-good",
         )}
       />
-      <div className="flex flex-wrap items-start justify-between gap-3 pl-2">
+      <div className="flex flex-col gap-3 pl-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             O que preciso fazer hoje
@@ -654,7 +654,7 @@ function TodayActionPanel({
             {withoutScoreCount} sem KPI recente
           </p>
         </div>
-        <Button asChild size="sm">
+        <Button asChild size="sm" className="w-full sm:w-auto">
           <Link to="/alertas">
             <ListChecks className="h-4 w-4" />
             Abrir fila
@@ -683,7 +683,7 @@ function TodayActionPanel({
                   <Link
                     to={action.to}
                     params={action.params}
-                    className="flex items-center gap-3 px-3 py-2.5 transition hover:bg-muted/40"
+                    className="flex items-center gap-3 px-3 py-3 transition hover:bg-muted/40 sm:py-2.5"
                   >
                     <span className={cn("h-2 w-2 shrink-0 rounded-full", dotTone)} />
                     <div className="min-w-0 flex-1">
