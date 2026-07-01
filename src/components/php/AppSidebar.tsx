@@ -23,9 +23,9 @@ import {
 const NAV_ITEMS = [
   { title: "Visão Geral", url: "/", icon: LayoutDashboard },
   { title: "Colaboradores", url: "/colaboradores", icon: Users },
+  { title: "Metas", url: "/metas", icon: Target },
   { title: "Análises", url: "/analises", icon: ChartNoAxesCombined },
   { title: "Ações", url: "/alertas", icon: ListChecks },
-  { title: "Metas", url: "/metas", icon: Target },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ] as const;
 
