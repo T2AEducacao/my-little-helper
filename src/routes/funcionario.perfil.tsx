@@ -135,29 +135,29 @@ function EmployeeProfilePage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <div>
-        <h2 className="text-xl font-semibold tracking-tight">Editar Perfil</h2>
-        <p className="text-sm text-muted-foreground">Atualize sua foto de perfil.</p>
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">Editar perfil</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Atualize sua foto de perfil.</p>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-6">
+      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
           </div>
         ) : !me?.employeeId ? (
-          <div className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">
+          <div className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
             Sua conta ainda não está vinculada a um colaborador. Peça ao seu líder para
             concluir o vínculo.
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
-            <Avatar className="h-28 w-28">
+          <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
+            <Avatar className="h-28 w-28 ring-2 ring-border/70 ring-offset-2 ring-offset-card">
               {me.avatarSignedUrl && (
                 <AvatarImage src={me.avatarSignedUrl} alt={me.name} />
               )}
-              <AvatarFallback className="bg-primary/10 text-2xl text-primary">
+              <AvatarFallback className="bg-primary/10 text-2xl font-semibold text-primary">
                 {me.name
                   .split(" ")
                   .slice(0, 2)
@@ -166,14 +166,14 @@ function EmployeeProfilePage() {
               </AvatarFallback>
             </Avatar>
 
-            <div className="flex flex-1 flex-col gap-2">
+            <div className="flex flex-1 flex-col gap-3 text-center sm:text-left">
               <div>
-                <div className="text-base font-semibold">{me.name}</div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-base font-semibold text-foreground">{me.name}</div>
+                <div className="mt-0.5 text-xs text-muted-foreground">
                   PNG, JPG ou WEBP, até 5MB.
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
                 <Button onClick={onPick} disabled={busy} size="sm">
                   <Camera className="h-4 w-4" />
                   {me.avatarPath ? "Trocar foto" : "Enviar foto"}
