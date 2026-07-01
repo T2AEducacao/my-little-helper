@@ -792,9 +792,12 @@ function EmployeeCard({
           <StatusBadge tone="neutral">{STATUS_LABEL[employee.status]}</StatusBadge>
         )}
       </div>
-      {employee.email && (
-        <div className="truncate text-xs text-muted-foreground">{employee.email}</div>
-      )}
+      <div
+        className="min-h-4 truncate text-xs text-muted-foreground"
+        aria-label={employee.email ? `E-mail: ${employee.email}` : "E-mail ainda não cadastrado"}
+      >
+        {employee.email ?? <span aria-hidden="true">&nbsp;</span>}
+      </div>
       <div className="border-t border-border pt-3">
         <ScoreBar score={score} />
         {diff !== null && diff !== 0 && (
