@@ -150,14 +150,14 @@ function GoalsPage() {
         title="Metas"
         description="Veja em segundos o que precisa de atenção e o que está caminhando bem."
         actions={
-          <div className="flex items-center gap-2">
-            <Button asChild variant="outline" size="sm">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:w-auto">
+            <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
               <Link to="/alertas">
                 <ListChecks className="h-4 w-4" />
                 Ver ações
               </Link>
             </Button>
-            <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Button size="sm" className="w-full sm:w-auto" onClick={() => setCreateOpen(true)}>
               <Plus className="h-4 w-4" />
               Criar Meta
             </Button>
@@ -217,7 +217,7 @@ function GoalsPage() {
             hint="Reconhecimento sugerido"
           />
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/20 px-5 py-3">
+        <div className="flex flex-col gap-3 border-t border-border bg-muted/20 px-4 py-3 sm:px-5 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
             <Target className="h-4 w-4 text-muted-foreground" />
             <div className="text-xs text-muted-foreground">Metas no recorte atual</div>
@@ -228,10 +228,10 @@ function GoalsPage() {
               leitura baseada em prazo e status
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-2">
             <span className="text-xs text-muted-foreground">Responsável</span>
             <Select value={ownerFilter} onValueChange={setOwnerFilter}>
-              <SelectTrigger className="h-8 w-[200px] text-xs">
+              <SelectTrigger className="h-8 w-full text-xs sm:w-[200px]">
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
@@ -324,7 +324,7 @@ function KpiCell({
   return (
     <div
       className={cn(
-        "flex items-start gap-3 border-border p-5 [&:not(:last-child)]:border-r",
+        "flex items-start gap-3 border-border p-4 odd:border-r first:border-b second:border-b sm:p-5 lg:[&:not(:last-child)]:border-r lg:first:border-b-0 lg:second:border-b-0",
         emphasis && value > 0 && "bg-status-risk/5",
       )}
     >
@@ -382,7 +382,7 @@ function GoalGroup({
         onClick={onToggle}
         className="flex w-full items-center justify-between gap-3 px-5 py-3.5 text-left hover:bg-muted/30"
       >
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex min-w-0 items-center gap-3">
           <span className={cn("h-2 w-2 shrink-0 rounded-full", dot[tone])} />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -435,7 +435,7 @@ function GoalRow({
   const showStripe = groupKey === "risk" || groupKey === "due_soon";
 
   return (
-    <article className="relative grid items-center gap-4 px-5 py-3.5 hover:bg-muted/20 lg:grid-cols-[minmax(0,1fr)_150px_140px]">
+    <article className="relative grid items-start gap-3 px-4 py-4 hover:bg-muted/20 sm:px-5 lg:grid-cols-[minmax(0,1fr)_150px_140px] lg:items-center lg:gap-4 lg:py-3.5">
       {showStripe && (
         <span
           aria-hidden
@@ -491,7 +491,7 @@ function GoalRow({
       </div>
 
       {/* Status + action */}
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex items-center justify-between gap-2 lg:justify-end">
         <StatusBadge tone={STATUS_TONE[goal.status]}>{STATUS_LABEL[goal.status]}</StatusBadge>
         {employee && (
           <Button asChild variant="ghost" size="icon" className="h-7 w-7">
