@@ -37,11 +37,15 @@ export function useGoals() {
 export function useMyEmployeeGoals() {
   return useQuery({
     queryKey: ["goals", "me"],
+    gcTime: 0,
     queryFn: async () => {
-      // RLS already filters to current employee for non-managers.
+      const context = await getCurrentAccessContext();
+      if (!context.employeeId) return [];
+
       const { data, error } = await supabase
         .from("goals")
         .select(COLS)
+        .eq("employee_id", context.employeeId)
         .order("deadline", { ascending: true, nullsFirst: false });
       if (error) throw error;
       return (data ?? []) as GoalRow[];
