@@ -742,46 +742,7 @@ function splitIntoBullets(body: string): string[] {
 
 function AnalysisTabs({ sections }: { sections: Array<{ key: AiSectionKey; body: string }> }) {
   return (
-    <Tabs defaultValue="text" className="w-full">
-      <TabsList className="grid w-full grid-cols-2 mb-4">
-        <TabsTrigger value="text">Por textos</TabsTrigger>
-        <TabsTrigger value="topics">Por tópicos</TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="text" className="mt-0 space-y-3">
-        {sections.map(({ key, body }) => {
-          const meta = AI_SECTIONS.find((s) => s.key === key)!;
-          const Icon = meta.icon;
-          return (
-            <section
-              key={key}
-              className={cn(
-                "rounded-xl border p-4 shadow-[var(--shadow-soft)]",
-                meta.accent,
-                meta.bg,
-              )}
-            >
-              <header className="mb-2 flex items-center gap-2">
-                <span
-                  className={cn(
-                    "flex h-7 w-7 items-center justify-center rounded-lg",
-                    meta.iconBg,
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                </span>
-                <h3 className="text-sm font-semibold tracking-tight text-foreground">
-                  {meta.title}
-                </h3>
-              </header>
-              <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 [&_p]:my-1.5 [&_strong]:text-foreground">
-                <ReactMarkdown>{body}</ReactMarkdown>
-              </div>
-            </section>
-          );
-        })}
-      </TabsContent>
-
+    <Tabs defaultValue="topics" className="w-full">
       <TabsContent value="topics" className="mt-0 space-y-3">
         {sections.map(({ key, body }) => {
           const meta = AI_SECTIONS.find((s) => s.key === key)!;
