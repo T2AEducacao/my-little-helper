@@ -59,7 +59,7 @@ const GROUP_META: Record<
   risk: {
     label: "Em risco",
     tone: "risk",
-    description: "Progresso abaixo do esperado ou prazo estourado.",
+    description: "Prazo estourado ou status exigindo ação do gestor.",
     defaultOpen: true,
   },
   due_soon: {
@@ -141,10 +141,6 @@ function GoalsPage() {
   const dueSoonCount = grouped.due_soon.length;
   const onTrackCount = grouped.on_track.length;
   const achievedCount = grouped.achieved.length;
-  const averageProgress =
-    filteredGoals.length > 0
-      ? Math.round(filteredGoals.reduce((sum, g) => sum + g.progress, 0) / filteredGoals.length)
-      : 0;
 
   const toggleGroup = (key: GroupKey) => setOpenGroups((s) => ({ ...s, [key]: !s[key] }));
 
@@ -224,15 +220,12 @@ function GoalsPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted/20 px-5 py-3">
           <div className="flex items-center gap-3">
             <Target className="h-4 w-4 text-muted-foreground" />
-            <div className="text-xs text-muted-foreground">Progresso médio da equipe</div>
+            <div className="text-xs text-muted-foreground">Metas no recorte atual</div>
             <div className="text-base font-semibold tabular-nums text-foreground">
-              {filteredGoals.length === 0 ? "—" : `${averageProgress}%`}
+              {filteredGoals.length}
             </div>
-            <div className="hidden h-1.5 w-40 overflow-hidden rounded-full bg-muted sm:block">
-              <div
-                className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${averageProgress}%` }}
-              />
+            <div className="hidden text-xs text-muted-foreground sm:block">
+              leitura baseada em prazo e status
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -423,7 +416,7 @@ function GoalRow({
   groupKey: GroupKey;
 }) {
   const dueInfo = getDueInfo(goal.due_date, goal.status);
-  const progressTone: ScoreStatus =
+  const signalTone: ScoreStatus =
     goal.status === "achieved"
       ? "excellent"
       : groupKey === "risk"
@@ -431,14 +424,6 @@ function GoalRow({
         : groupKey === "due_soon"
           ? "attention"
           : "good";
-  const fillCls: Record<ScoreStatus, string> = {
-    excellent: "bg-status-excellent",
-    good: "bg-status-good",
-    attention: "bg-status-attention",
-    risk: "bg-status-risk",
-    critical: "bg-status-critical",
-    neutral: "bg-status-neutral",
-  };
   const stripeCls: Record<ScoreStatus, string> = {
     excellent: "bg-status-excellent",
     good: "bg-status-good",
@@ -450,11 +435,11 @@ function GoalRow({
   const showStripe = groupKey === "risk" || groupKey === "due_soon";
 
   return (
-    <article className="relative grid items-center gap-4 px-5 py-3.5 hover:bg-muted/20 lg:grid-cols-[minmax(0,1fr)_200px_140px_120px]">
+    <article className="relative grid items-center gap-4 px-5 py-3.5 hover:bg-muted/20 lg:grid-cols-[minmax(0,1fr)_150px_140px]">
       {showStripe && (
         <span
           aria-hidden
-          className={cn("absolute inset-y-2 left-0 w-[3px] rounded-full", stripeCls[progressTone])}
+          className={cn("absolute inset-y-2 left-0 w-[3px] rounded-full", stripeCls[signalTone])}
         />
       )}
 
@@ -485,24 +470,6 @@ function GoalRow({
               <span className="truncate">{employee.role}</span>
             </>
           )}
-        </div>
-      </div>
-
-      {/* Progress */}
-      <div>
-        <div className="mb-1 flex items-center justify-between text-xs">
-          <span className="font-medium tabular-nums text-foreground">{goal.progress}%</span>
-          <span className="text-muted-foreground tabular-nums">
-            {goal.current}
-            {goal.unit === "%" ? "%" : ` ${goal.unit}`} / {goal.target}
-            {goal.unit === "%" ? "%" : ` ${goal.unit}`}
-          </span>
-        </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className={cn("h-full rounded-full transition-all", fillCls[progressTone])}
-            style={{ width: `${Math.max(0, Math.min(100, goal.progress))}%` }}
-          />
         </div>
       </div>
 
@@ -569,7 +536,7 @@ function groupGoals(goals: PerformanceGoal[]): Record<GroupKey, PerformanceGoal[
   // sort: most urgent first
   result.risk.sort((a, b) => (daysUntil(a.due_date) ?? 0) - (daysUntil(b.due_date) ?? 0));
   result.due_soon.sort((a, b) => (daysUntil(a.due_date) ?? 0) - (daysUntil(b.due_date) ?? 0));
-  result.on_track.sort((a, b) => b.progress - a.progress);
+  result.on_track.sort((a, b) => (daysUntil(a.due_date) ?? 9999) - (daysUntil(b.due_date) ?? 9999));
   result.achieved.sort((a, b) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime());
   return result;
 }
@@ -642,12 +609,15 @@ function DbGoalsSection({
         : [];
   const visibleCompletedGoals = filter === "all" || filter === "completed" ? completedGoals : [];
   const visibleCount = visiblePendingGoals.length + visibleCompletedGoals.length;
+  const visibleOverdueCount = visiblePendingGoals.filter(isGoalOverdue).length;
+  const visibleCompletedCount = visibleCompletedGoals.length;
   const filters: { value: DbGoalFilter; label: string; count: number }[] = [
     { value: "all", label: "Todas", count: goals.length },
     { value: "pending", label: "Em andamento", count: pendingGoals.length },
     { value: "completed", label: "Concluídas", count: completedGoals.length },
     { value: "overdue", label: "Atrasadas", count: overdueGoals.length },
   ];
+  const activeFilterLabel = filters.find((item) => item.value === filter)?.label ?? "Todas";
 
   return (
     <SectionCard
@@ -690,6 +660,29 @@ function DbGoalsSection({
               );
             })}
           </div>
+          <div className="grid gap-3 border-b border-border bg-muted/10 px-4 py-3 sm:grid-cols-3">
+            <FilterSummaryItem
+              label={`Metas em "${activeFilterLabel}"`}
+              value={visibleCount}
+              hint={visibleCount === 1 ? "meta exibida" : "metas exibidas"}
+            />
+            <FilterSummaryItem
+              label="Atrasadas abertas"
+              value={visibleOverdueCount}
+              hint={visibleOverdueCount === 0 ? "sem atraso no filtro" : "exigem atenção"}
+              tone={visibleOverdueCount > 0 ? "risk" : "neutral"}
+            />
+            <FilterSummaryItem
+              label="Concluídas"
+              value={visibleCompletedCount}
+              hint={
+                visibleCompletedCount === 0
+                  ? "nenhuma concluída no filtro"
+                  : "já finalizadas no filtro"
+              }
+              tone={visibleCompletedCount > 0 ? "excellent" : "neutral"}
+            />
+          </div>
           <div className="hidden grid-cols-[minmax(220px,1fr)_180px_140px_250px] items-center gap-6 border-b border-border bg-muted/20 px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground lg:grid">
             <span>Meta</span>
             <span>Responsável</span>
@@ -728,6 +721,39 @@ function DbGoalsSection({
         </div>
       )}
     </SectionCard>
+  );
+}
+
+function FilterSummaryItem({
+  label,
+  value,
+  hint,
+  tone = "neutral",
+}: {
+  label: string;
+  value: number;
+  hint: string;
+  tone?: "neutral" | "risk" | "excellent";
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card px-3 py-2">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      <div className="mt-1 flex items-baseline gap-2">
+        <span
+          className={cn(
+            "text-xl font-semibold tabular-nums",
+            tone === "risk" && "text-status-risk",
+            tone === "excellent" && "text-status-excellent",
+            tone === "neutral" && "text-foreground",
+          )}
+        >
+          {value}
+        </span>
+        <span className="text-xs text-muted-foreground">{hint}</span>
+      </div>
+    </div>
   );
 }
 
