@@ -17,7 +17,7 @@ export function FilterBar<T extends string>({ value, onChange, options, classNam
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-1 rounded-lg border border-border bg-muted/40 p-1",
+        "inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border bg-muted/40 p-1",
         className,
       )}
     >
@@ -28,7 +28,7 @@ export function FilterBar<T extends string>({ value, onChange, options, classNam
           size="sm"
           variant={value === opt.value ? "default" : "ghost"}
           onClick={() => onChange(opt.value)}
-          className="h-7 px-3 text-xs"
+          className="h-7 shrink-0 px-3 text-xs"
         >
           {opt.label}
         </Button>

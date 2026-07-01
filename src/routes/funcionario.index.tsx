@@ -4,12 +4,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarClock, CheckCircle2, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/php/EmptyState";
 import { StatusBadge } from "@/components/php/StatusBadge";
 import { useMyEmployeeGoals, type GoalRow } from "@/lib/goals-data";
@@ -42,15 +37,15 @@ function EmployeeGoalsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="active">
-        <TabsList>
-          <TabsTrigger value="active">
+      <Tabs defaultValue="active" className="min-w-0">
+        <TabsList className="grid h-auto w-full grid-cols-2 sm:inline-grid sm:w-auto">
+          <TabsTrigger value="active" className="min-w-0">
             Em andamento
             <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
               {pending.length}
             </span>
           </TabsTrigger>
-          <TabsTrigger value="done">
+          <TabsTrigger value="done" className="min-w-0">
             Concluídas
             <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
               {completed.length}
@@ -101,10 +96,10 @@ function EmployeeGoalsPage() {
 function ActiveGoalRow({ goal }: { goal: GoalRow }) {
   const dueInfo = getDueInfo(goal.deadline);
   return (
-    <article className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/40">
+    <article className="flex flex-col gap-3 px-4 py-3.5 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center">
       <div
         className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border",
+          "hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg border sm:flex",
           dueInfo.tone === "risk"
             ? "border-status-risk/30 bg-status-risk/10 text-status-risk"
             : dueInfo.tone === "attention"
@@ -131,33 +126,36 @@ function ActiveGoalRow({ goal }: { goal: GoalRow }) {
           </div>
         )}
       </div>
-      <StatusBadge tone="attention">Em andamento</StatusBadge>
+      <div className="flex justify-start sm:justify-end">
+        <StatusBadge tone="attention">Em andamento</StatusBadge>
+      </div>
     </article>
   );
 }
 
 function CompletedGoalRow({ goal }: { goal: GoalRow }) {
   return (
-    <article className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/40">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-status-excellent/30 bg-status-excellent/10 text-status-excellent">
+    <article className="flex flex-col gap-3 px-4 py-3.5 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center">
+      <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-status-excellent/30 bg-status-excellent/10 text-status-excellent sm:flex">
         <CheckCircle2 className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">
         <h3 className="truncate text-sm font-medium text-foreground">{goal.name}</h3>
         <div className="mt-0.5 text-xs text-muted-foreground">
-          {goal.completed_at
-            ? `Concluída em ${formatDate(goal.completed_at)}`
-            : "Concluída"}
+          {goal.completed_at ? `Concluída em ${formatDate(goal.completed_at)}` : "Concluída"}
         </div>
       </div>
-      <StatusBadge tone="excellent">Concluída</StatusBadge>
+      <div className="flex justify-start sm:justify-end">
+        <StatusBadge tone="excellent">Concluída</StatusBadge>
+      </div>
     </article>
   );
 }
 
-function getDueInfo(
-  date: string | null,
-): { label: string; tone: "risk" | "attention" | "good" | "neutral" } {
+function getDueInfo(date: string | null): {
+  label: string;
+  tone: "risk" | "attention" | "good" | "neutral";
+} {
   if (!date) return { label: "Sem prazo", tone: "neutral" };
   const target = new Date(date);
   if (Number.isNaN(target.getTime())) return { label: "Sem prazo", tone: "neutral" };

@@ -32,9 +32,7 @@ async function fetchMe(): Promise<Me | null> {
   let signed: string | null = null;
   const path = emp?.avatar_url ?? null;
   if (path && !/^https?:\/\//.test(path)) {
-    const { data } = await supabase.storage
-      .from("avatars")
-      .createSignedUrl(path, SIGNED_TTL);
+    const { data } = await supabase.storage.from("avatars").createSignedUrl(path, SIGNED_TTL);
     signed = data?.signedUrl ?? null;
   } else if (path) {
     signed = path;
@@ -119,10 +117,7 @@ function EmployeeProfilePage() {
         await supabase.storage.from("avatars").remove([me.avatarPath]);
       }
       if (me.employeeId) {
-        await supabase
-          .from("employees")
-          .update({ avatar_url: null })
-          .eq("id", me.employeeId);
+        await supabase.from("employees").update({ avatar_url: null }).eq("id", me.employeeId);
       }
       toast.success("Foto removida.");
       await refresh();
@@ -141,22 +136,20 @@ function EmployeeProfilePage() {
         <p className="mt-1 text-sm text-muted-foreground">Atualize sua foto de perfil.</p>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
+      <div className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-soft)] sm:p-6">
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
           </div>
         ) : !me?.employeeId ? (
           <div className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-            Sua conta ainda não está vinculada a um colaborador. Peça ao seu líder para
-            concluir o vínculo.
+            Sua conta ainda não está vinculada a um colaborador. Peça ao seu líder para concluir o
+            vínculo.
           </div>
         ) : (
           <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
             <Avatar className="h-28 w-28 ring-2 ring-border/70 ring-offset-2 ring-offset-card">
-              {me.avatarSignedUrl && (
-                <AvatarImage src={me.avatarSignedUrl} alt={me.name} />
-              )}
+              {me.avatarSignedUrl && <AvatarImage src={me.avatarSignedUrl} alt={me.name} />}
               <AvatarFallback className="bg-primary/10 text-2xl font-semibold text-primary">
                 {me.name
                   .split(" ")
@@ -173,8 +166,8 @@ function EmployeeProfilePage() {
                   PNG, JPG ou WEBP, até 5MB.
                 </div>
               </div>
-              <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
-                <Button onClick={onPick} disabled={busy} size="sm">
+              <div className="flex flex-col justify-center gap-2 sm:flex-row sm:flex-wrap sm:justify-start">
+                <Button onClick={onPick} disabled={busy} size="sm" className="w-full sm:w-auto">
                   <Camera className="h-4 w-4" />
                   {me.avatarPath ? "Trocar foto" : "Enviar foto"}
                 </Button>
@@ -184,6 +177,7 @@ function EmployeeProfilePage() {
                     size="sm"
                     onClick={onRemove}
                     disabled={busy}
+                    className="w-full sm:w-auto"
                   >
                     <Trash2 className="h-4 w-4" />
                     Remover

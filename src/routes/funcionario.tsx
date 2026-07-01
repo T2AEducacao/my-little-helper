@@ -101,9 +101,9 @@ function EmployeeLayout() {
       <div className="flex min-h-screen w-full bg-background">
         <EmployeeSidebar pathname={pathname} />
         <SidebarInset className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur md:px-6">
+          <header className="sticky top-0 z-30 flex h-14 min-w-0 items-center gap-3 border-b border-border bg-background/80 px-3 backdrop-blur sm:px-4 md:px-6">
             <SidebarTrigger className="-ml-1" />
-            <div className="text-sm font-medium text-foreground">{title}</div>
+            <div className="min-w-0 truncate text-sm font-medium text-foreground">{title}</div>
             <div className="ml-auto flex items-center gap-2">
               <Button
                 variant="outline"
@@ -115,12 +115,18 @@ function EmployeeLayout() {
               >
                 {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
-              <Button variant="ghost" size="icon" aria-label="Sair" className="h-9 w-9" onClick={handleLogout}>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Sair"
+                className="h-9 w-9"
+                onClick={handleLogout}
+              >
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </header>
-          <main className="flex-1 px-4 pb-10 pt-6 md:px-8">
+          <main className="min-w-0 flex-1 px-3 pb-10 pt-5 sm:px-4 md:px-8 md:pt-6">
             <Outlet />
           </main>
         </SidebarInset>

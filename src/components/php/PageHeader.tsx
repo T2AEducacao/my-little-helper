@@ -12,20 +12,22 @@ export function PageHeader({ title, description, actions, className, bordered }:
   return (
     <div
       className={cn(
-        "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 sm:flex sm:flex-wrap sm:justify-between",
+        "flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between",
         bordered && "border-b border-border pb-5",
         className,
       )}
     >
       <div className="min-w-0">
-        <h1 className="truncate text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+        <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
           {title}
         </h1>
         {description && (
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{description}</p>
         )}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && (
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{actions}</div>
+      )}
     </div>
   );
 }

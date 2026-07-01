@@ -327,7 +327,7 @@ function EmployeeProfilePage() {
         }
         className="w-full"
       >
-        <div className="-mx-1 overflow-x-auto">
+        <div className="-mx-1 overflow-x-auto px-1 pb-1">
           <TabsList className="inline-flex h-10 w-max gap-1 bg-transparent p-0">
             <ProfileTab value="overview" icon={Sparkles} label="Visão geral" />
             <ProfileTab
@@ -601,7 +601,7 @@ function ProfileTab({
     <TabsTrigger
       value={value}
       className={cn(
-        "relative h-9 gap-1.5 rounded-md border border-transparent bg-transparent px-3 text-xs font-medium text-muted-foreground transition data-[state=active]:border-border data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm hover:text-foreground",
+        "relative h-9 shrink-0 gap-1.5 rounded-md border border-transparent bg-transparent px-3 text-xs font-medium text-muted-foreground transition data-[state=active]:border-border data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm hover:text-foreground",
       )}
     >
       <Icon className="h-3.5 w-3.5" />
