@@ -1,17 +1,14 @@
 import { PageHeader } from "@/components/php/PageHeader";
 import { SectionCard } from "@/components/php/SectionCard";
-import { EmptyState } from "@/components/php/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { useEmployees, initials } from "@/lib/php-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Languages, Loader2, UserCog } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { Languages, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 type Lang = "pt-BR" | "en";
@@ -50,7 +47,6 @@ function useCompany() {
 
 function ConfiguracoesPage() {
   const company = useCompany();
-  const employees = useEmployees();
   const qc = useQueryClient();
   const [lang, setLang] = useLanguage();
   const [name, setName] = useState("");
@@ -74,12 +70,6 @@ function ConfiguracoesPage() {
     },
     onError: (err: Error) => toast.error(err.message),
   });
-
-  const managers = useMemo(() => {
-    const list = employees.data ?? [];
-    const managerIds = new Set(list.map((e) => e.manager_id).filter(Boolean) as string[]);
-    return list.filter((e) => managerIds.has(e.id));
-  }, [employees.data]);
 
   const dirty = name.trim().length > 0 && name.trim() !== (company.data?.name ?? "");
 
@@ -151,49 +141,6 @@ function ConfiguracoesPage() {
             );
           })}
         </div>
-      </SectionCard>
-
-      <SectionCard
-        title="Gestores e líderes"
-        description="Pessoas que lideram equipes e têm acesso ao sistema."
-        contentClassName="px-2 pb-3 pt-1"
-      >
-        {employees.isLoading ? (
-          <div className="flex items-center gap-2 px-3 py-6 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Carregando gestores...
-          </div>
-        ) : managers.length === 0 ? (
-          <div className="px-3 py-2">
-            <EmptyState
-              icon={UserCog}
-              title="Nenhum gestor cadastrado"
-              description="Defina o gestor responsável ao cadastrar colaboradores em Pessoas para que apareçam aqui."
-            />
-          </div>
-        ) : (
-          <ul className="flex flex-col divide-y divide-border/60">
-            {managers.map((m) => (
-              <li
-                key={m.id}
-                className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 px-3 py-3"
-              >
-                <Avatar className="h-9 w-9">
-                  {(m.avatar_display_url || m.avatar_url) && (
-                    <AvatarImage src={m.avatar_display_url ?? m.avatar_url ?? ""} alt={m.name} />
-                  )}
-                  <AvatarFallback className="text-xs">{initials(m.name)}</AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium text-foreground">{m.name}</div>
-                  <div className="truncate text-xs text-muted-foreground">
-                    {m.role ?? "Gestor"}
-                    {m.email ? ` · ${m.email}` : ""}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
       </SectionCard>
     </div>
   );
