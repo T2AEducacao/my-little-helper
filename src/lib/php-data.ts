@@ -420,7 +420,7 @@ async function withSignedEmployeeAvatars(employees: EmployeeRow[]): Promise<Empl
   return results.filter((e): e is EmployeeRow => e !== null);
 }
 
-async function withSignedEmployeeAvatar(employee: EmployeeRow | null): Promise<EmployeeRow | null> {
+async function withSignedEmployeeAvatar<T extends EmployeeRow | null>(employee: T): Promise<T> {
   if (!employee?.avatar_url || isPublicAvatarUrl(employee.avatar_url)) return employee;
 
   const { data, error } = await supabase.storage
