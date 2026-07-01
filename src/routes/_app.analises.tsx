@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { gerarAnaliseEmpresa } from "@/lib/analises-ai.functions";
-import { Loader2, Wand2 } from "lucide-react";
+import { Loader2, Wand2, Sparkle, ShieldAlert, TrendingUp as TrendingUpIcon, Eye, RefreshCcw } from "lucide-react";
 import {
   ArrowRight,
   ArrowUpRight,
