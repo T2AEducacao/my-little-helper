@@ -92,7 +92,7 @@ export async function parseEmployeesSpreadsheet(
       rowNumber,
       input: {
         name,
-        email: optional(getCell(row, ["email", "e-mail", "mail"])),
+        email: null,
         role: optional(getCell(row, ["cargo", "funcao", "função", "role"])),
         department_id: departmentName
           ? (departmentByName.get(normalizeKey(departmentName)) ?? null)
