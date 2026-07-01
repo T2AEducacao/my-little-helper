@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
@@ -64,6 +64,7 @@ import {
   useEmployees,
   useDepartments,
   useDeactivateEmployee,
+  useCreateEmployee,
   latestSnapshotsByEmployee,
   initials,
   STATUS_LABEL,
@@ -72,6 +73,10 @@ import {
   type EmployeeStatus,
 } from "@/lib/php-data";
 import { usePerformanceWorkspaceData } from "@/features/performance/workspace-data";
+import {
+  exportEmployeesSpreadsheet,
+  parseEmployeesSpreadsheet,
+} from "@/features/employees/spreadsheet";
 
 export const Route = createFileRoute("/_app/colaboradores")({
   head: () => ({
@@ -108,10 +113,14 @@ function ColaboradoresPage() {
   const { data: departments = [] } = useDepartments();
   const performanceData = usePerformanceWorkspaceData(employees);
   const deactivate = useDeactivateEmployee();
+  const createEmployee = useCreateEmployee();
+  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<EmployeeRow | null>(null);
   const [toDeactivate, setToDeactivate] = useState<EmployeeRow | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState<string>("all");
@@ -207,6 +216,70 @@ function ColaboradoresPage() {
     }
   }
 
+  async function handleImportFile(file: File | undefined) {
+    if (!file) return;
+    setIsImporting(true);
+
+    try {
+      const result = await parseEmployeesSpreadsheet(file, { departments, employees });
+
+      if (result.employees.length === 0) {
+        toast.error("Nenhum colaborador com nome foi encontrado na planilha.");
+        return;
+      }
+
+      let created = 0;
+      const failed: string[] = [];
+
+      for (const employee of result.employees) {
+        try {
+          await createEmployee.mutateAsync(employee.input);
+          created++;
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "erro desconhecido";
+          failed.push(`Linha ${employee.rowNumber}: ${message}`);
+        }
+      }
+
+      if (created > 0) {
+        toast.success(
+          `${created} colaborador${created === 1 ? "" : "es"} importado${created === 1 ? "" : "s"}.`,
+        );
+      }
+
+      if (result.skipped.length > 0) {
+        toast.warning(`${result.skipped.length} linha(s) sem nome foram ignoradas.`);
+      }
+
+      if (failed.length > 0) {
+        toast.error(`${failed.length} linha(s) não puderam ser importadas.`);
+        console.warn("Falhas na importação de colaboradores", failed);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível ler a planilha.");
+    } finally {
+      setIsImporting(false);
+      if (importInputRef.current) importInputRef.current.value = "";
+    }
+  }
+
+  async function handleExport() {
+    if (employees.length === 0) {
+      toast.error("Não há colaboradores cadastrados para exportar.");
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      await exportEmployeesSpreadsheet(employees, departments);
+      toast.success("Planilha de colaboradores gerada.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível exportar a planilha.");
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-4">
@@ -220,21 +293,30 @@ function ColaboradoresPage() {
           </p>
         </div>
         <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:w-auto">
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            onChange={(event) => void handleImportFile(event.target.files?.[0])}
+          />
           <Button
             variant="outline"
             size="sm"
             className="w-full sm:w-auto"
-            onClick={() => toast("Disponível em breve.")}
+            disabled={isImporting || createEmployee.isPending}
+            onClick={() => importInputRef.current?.click()}
           >
-            <Upload className="h-4 w-4" /> Importar
+            <Upload className="h-4 w-4" /> {isImporting ? "Importando..." : "Importar"}
           </Button>
           <Button
             variant="outline"
             size="sm"
             className="w-full sm:w-auto"
-            onClick={() => toast("Disponível em breve.")}
+            disabled={isExporting}
+            onClick={() => void handleExport()}
           >
-            <Download className="h-4 w-4" /> Exportar
+            <Download className="h-4 w-4" /> {isExporting ? "Exportando..." : "Exportar"}
           </Button>
           <Button
             size="sm"
