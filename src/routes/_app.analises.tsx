@@ -641,9 +641,9 @@ function AiAnalysisDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl overflow-hidden p-0 gap-0">
+      <DialogContent className="bottom-3 left-3 right-3 top-3 flex max-h-[calc(100dvh-1.5rem)] w-auto max-w-none translate-x-0 translate-y-0 grid-rows-none flex-col gap-0 overflow-hidden p-0 sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:max-h-[86vh] sm:w-[calc(100vw-2rem)] sm:max-w-3xl sm:-translate-x-1/2 sm:-translate-y-1/2">
         {/* Header with gradient */}
-        <div className="relative overflow-hidden border-b border-border bg-gradient-to-br from-primary/10 via-status-info-soft/40 to-transparent px-6 pt-6 pb-5">
+        <div className="relative shrink-0 overflow-hidden border-b border-border bg-gradient-to-br from-primary/10 via-status-info-soft/40 to-transparent px-4 pb-4 pt-5 sm:px-6 sm:pb-5 sm:pt-6">
           <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
           <div className="relative flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[var(--shadow-soft)]">
@@ -663,7 +663,7 @@ function AiAnalysisDialog({
         </div>
 
         {/* Body */}
-        <div className="max-h-[62vh] overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {isPending && (
             <div className="space-y-3">
               {[0, 1, 2].map((i) => (
@@ -706,22 +706,22 @@ function AiAnalysisDialog({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="border-t border-border bg-muted/30 px-6 py-3 sm:justify-between">
+        <DialogFooter className="shrink-0 flex-col gap-2 border-t border-border bg-muted/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p className="hidden text-xs text-muted-foreground sm:block">
             Baseado em dados agregados · não substitui avaliação humana.
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <Button
               variant="outline"
               size="sm"
               onClick={onRegenerate}
               disabled={isPending}
-              className="gap-1.5"
+              className="w-full gap-1.5 sm:w-auto"
             >
               <RefreshCcw className={cn("h-3.5 w-3.5", isPending && "animate-spin")} />
               Gerar novamente
             </Button>
-            <Button size="sm" onClick={() => onOpenChange(false)}>
+            <Button size="sm" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>
               Fechar
             </Button>
           </div>

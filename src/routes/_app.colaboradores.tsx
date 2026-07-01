@@ -246,7 +246,7 @@ function ColaboradoresPage() {
       />
 
       {/* Compact status strip */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
         <StatStripItem label="Ativos" value={buckets.active} hint={`${buckets.total} total`} />
         <StatStripDot tone="excellent" label="Alto" value={buckets.excellent} />
         <StatStripDot tone="good" label="Bom" value={buckets.good} />
@@ -258,7 +258,7 @@ function ColaboradoresPage() {
 
       {/* Toolbar */}
       <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -268,10 +268,10 @@ function ColaboradoresPage() {
               className="h-9 pl-9"
             />
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
             <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9">
+                <Button variant="outline" size="sm" className="h-9 w-full sm:w-auto">
                   <SlidersHorizontal className="h-4 w-4" />
                   Filtros
                   {popoverFilterCount > 0 && (
@@ -281,7 +281,7 @@ function ColaboradoresPage() {
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-80 p-3">
+              <PopoverContent align="end" className="w-[calc(100vw-2rem)] max-w-80 p-3">
                 <div className="grid grid-cols-1 gap-3">
                   <FilterField label="Área">
                     <FilterSelect
@@ -336,12 +336,12 @@ function ColaboradoresPage() {
                 </div>
               </PopoverContent>
             </Popover>
-            <div className="inline-flex h-9 items-center rounded-md border border-border bg-background p-0.5">
+            <div className="inline-flex h-9 w-full items-center rounded-md border border-border bg-background p-0.5 sm:w-auto">
               <button
                 type="button"
                 onClick={() => setView("table")}
                 className={cn(
-                  "inline-flex h-8 items-center gap-1.5 rounded-sm px-2 text-xs font-medium transition",
+                  "inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-sm px-2 text-xs font-medium transition sm:flex-none",
                   view === "table"
                     ? "bg-foreground text-background"
                     : "text-muted-foreground hover:text-foreground",
@@ -355,7 +355,7 @@ function ColaboradoresPage() {
                 type="button"
                 onClick={() => setView("cards")}
                 className={cn(
-                  "inline-flex h-8 items-center gap-1.5 rounded-sm px-2 text-xs font-medium transition",
+                  "inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-sm px-2 text-xs font-medium transition sm:flex-none",
                   view === "cards"
                     ? "bg-foreground text-background"
                     : "text-muted-foreground hover:text-foreground",
@@ -468,57 +468,70 @@ function ColaboradoresPage() {
           }
         />
       ) : view === "table" ? (
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Pessoa
-                  </TableHead>
-                  <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Área
-                  </TableHead>
-                  <TableHead className="h-10 w-[220px] text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Desempenho
-                  </TableHead>
-                  <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Tendência
-                  </TableHead>
-                  <TableHead className="h-10 w-12" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((e) => (
-                  <EmployeeTableRow
-                    key={e.id}
-                    employee={e}
-                    deptName={deptById.get(e.department_id ?? "") ?? "—"}
-                    score={latest.get(e.id)?.current ?? null}
-                    previous={latest.get(e.id)?.previous ?? null}
-                    onEdit={() => {
-                      setEditing(e);
-                      setOpenForm(true);
-                    }}
-                    onDeactivate={() => setToDeactivate(e)}
-                  />
-                ))}
-              </TableBody>
-            </Table>
+        <>
+          <div className="hidden overflow-hidden rounded-xl border border-border bg-card shadow-sm md:block">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Pessoa
+                    </TableHead>
+                    <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Área
+                    </TableHead>
+                    <TableHead className="h-10 w-[220px] text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Desempenho
+                    </TableHead>
+                    <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Tendência
+                    </TableHead>
+                    <TableHead className="h-10 w-12" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((e) => (
+                    <EmployeeTableRow
+                      key={e.id}
+                      employee={e}
+                      deptName={deptById.get(e.department_id ?? "") ?? "—"}
+                      score={latest.get(e.id)?.current ?? null}
+                      previous={latest.get(e.id)?.previous ?? null}
+                      onEdit={() => {
+                        setEditing(e);
+                        setOpenForm(true);
+                      }}
+                      onDeactivate={() => setToDeactivate(e)}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex items-center justify-between border-t border-border px-4 py-2 text-xs text-muted-foreground">
+              <span>
+                Mostrando{" "}
+                <span className="font-medium tabular-nums text-foreground">{filtered.length}</span>{" "}
+                de <span className="tabular-nums">{employees.length}</span> colaboradores
+              </span>
+              {hasAnyFilter && (
+                <button onClick={clearFilters} className="underline-offset-2 hover:underline">
+                  Limpar filtros
+                </button>
+              )}
+            </div>
           </div>
-          <div className="flex items-center justify-between border-t border-border px-4 py-2 text-xs text-muted-foreground">
-            <span>
-              Mostrando{" "}
-              <span className="font-medium tabular-nums text-foreground">{filtered.length}</span> de{" "}
-              <span className="tabular-nums">{employees.length}</span> colaboradores
-            </span>
-            {hasAnyFilter && (
-              <button onClick={clearFilters} className="underline-offset-2 hover:underline">
-                Limpar filtros
-              </button>
-            )}
+          <div className="grid grid-cols-1 gap-3 md:hidden">
+            {filtered.map((e) => (
+              <EmployeeCard
+                key={e.id}
+                employee={e}
+                deptName={deptById.get(e.department_id ?? "") ?? "—"}
+                score={latest.get(e.id)?.current ?? null}
+                previous={latest.get(e.id)?.previous ?? null}
+              />
+            ))}
           </div>
-        </div>
+        </>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((e) => (
