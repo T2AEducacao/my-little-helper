@@ -9,7 +9,6 @@ import { useEffect, useState } from "react";
 
 const PAGE_TITLES: Record<string, string> = {
   "/": "Visão Geral",
-  "/alertas": "Ações",
   "/colaboradores": "Colaboradores",
   "/metas": "Metas",
   "/analises": "Análises",
