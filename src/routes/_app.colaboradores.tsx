@@ -54,7 +54,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PageHeader } from "@/components/php/PageHeader";
 import { EmptyState } from "@/components/php/EmptyState";
 import { StatusBadge } from "@/components/php/StatusBadge";
 import { EmployeeFormDialog } from "@/components/php/EmployeeFormDialog";
@@ -210,40 +209,45 @@ function ColaboradoresPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader
-        title="Colaboradores"
-        description="Encontre rapidamente quem está em destaque, quem precisa de atenção e quem ainda não foi avaliado."
-        actions={
-          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:w-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full sm:w-auto"
-              onClick={() => toast("Disponível em breve.")}
-            >
-              <Upload className="h-4 w-4" /> Importar
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full sm:w-auto"
-              onClick={() => toast("Disponível em breve.")}
-            >
-              <Download className="h-4 w-4" /> Exportar
-            </Button>
-            <Button
-              size="sm"
-              className="col-span-2 w-full sm:col-span-1 sm:w-auto"
-              onClick={() => {
-                setEditing(null);
-                setOpenForm(true);
-              }}
-            >
-              <Plus className="h-4 w-4" /> Novo colaborador
-            </Button>
-          </div>
-        }
-      />
+      <div className="flex flex-col gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+            Colaboradores
+          </h1>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+            Encontre rapidamente quem está em destaque, quem precisa de atenção e quem ainda não foi
+            avaliado.
+          </p>
+        </div>
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => toast("Disponível em breve.")}
+          >
+            <Upload className="h-4 w-4" /> Importar
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => toast("Disponível em breve.")}
+          >
+            <Download className="h-4 w-4" /> Exportar
+          </Button>
+          <Button
+            size="sm"
+            className="col-span-2 w-full sm:col-span-1 sm:w-auto"
+            onClick={() => {
+              setEditing(null);
+              setOpenForm(true);
+            }}
+          >
+            <Plus className="h-4 w-4" /> Novo colaborador
+          </Button>
+        </div>
+      </div>
 
       {/* Compact status strip */}
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
