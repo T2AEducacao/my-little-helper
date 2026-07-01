@@ -101,7 +101,7 @@ function EmployeeGoalsPage() {
 function ActiveGoalRow({ goal }: { goal: GoalRow }) {
   const dueInfo = getDueInfo(goal.deadline);
   return (
-    <article className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <article className="flex flex-col gap-2 px-4 py-3.5 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <h3 className="truncate text-sm font-medium text-foreground">{goal.name}</h3>
         {goal.deadline && (
