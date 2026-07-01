@@ -8,11 +8,7 @@ import {
   Download,
   Users,
   MoreHorizontal,
-  Eye,
   Pencil,
-  ClipboardCheck,
-  MessageSquare,
-  CalendarPlus,
   UserMinus,
   ArrowUpRight,
   ArrowDownRight,
@@ -736,11 +732,6 @@ function EmployeeTableRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <Link to="/colaboradores/$id" params={{ id: employee.id }}>
-                <Eye className="mr-2 h-4 w-4" /> Ver perfil
-              </Link>
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={onEdit}>
               <Pencil className="mr-2 h-4 w-4" /> Editar
             </DropdownMenuItem>
@@ -751,16 +742,6 @@ function EmployeeTableRow({
               hasAccess={!!employee.profile_id}
               defaultEmail={employee.email}
             />
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => toast("Disponível em breve.")}>
-              <ClipboardCheck className="mr-2 h-4 w-4" /> Registrar KPI
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toast("Disponível em breve.")}>
-              <MessageSquare className="mr-2 h-4 w-4" /> Registrar feedback
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => toast("Disponível em breve.")}>
-              <CalendarPlus className="mr-2 h-4 w-4" /> Agendar 1:1
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={onDeactivate}
