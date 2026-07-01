@@ -13,7 +13,15 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { gerarAnaliseEmpresa } from "@/lib/analises-ai.functions";
-import { Loader2, Wand2, Sparkle, ShieldAlert, TrendingUp as TrendingUpIcon, Eye, RefreshCcw } from "lucide-react";
+import {
+  Loader2,
+  Wand2,
+  Sparkle,
+  ShieldAlert,
+  TrendingUp as TrendingUpIcon,
+  Eye,
+  RefreshCcw,
+} from "lucide-react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -205,9 +213,7 @@ function useAnaliseModel(range: RangeValue): AnaliseModel {
 
     const evolution = buildEvolutionSeries(workspace.snapshots, Number(range));
     const evolutionDelta =
-      evolution.length >= 2
-        ? evolution[evolution.length - 1].score - evolution[0].score
-        : null;
+      evolution.length >= 2 ? evolution[evolution.length - 1].score - evolution[0].score : null;
 
     const areas = buildAreaStats(active, scored, departments);
     const topRisingAreas = [...areas]
@@ -306,10 +312,7 @@ function buildAreaStats(
   return result.sort((a, b) => (b.avg ?? -1) - (a.avg ?? -1));
 }
 
-function buildManagerStats(
-  active: PerformanceEmployee[],
-  scored: ScoredEmployee[],
-): ManagerStat[] {
+function buildManagerStats(active: PerformanceEmployee[], scored: ScoredEmployee[]): ManagerStat[] {
   const nameById = new Map(active.map((e) => [e.id, e.name] as const));
   const reportsByMgr = new Map<string, PerformanceEmployee[]>();
   for (const e of active) {
@@ -403,9 +406,7 @@ function buildBottlenecks(args: {
   }
 
   // Gestores com ≥2 liderados em risco/crítico
-  const overloaded = args.managers
-    .filter((m) => m.risk + m.critical >= 2)
-    .slice(0, 2);
+  const overloaded = args.managers.filter((m) => m.risk + m.critical >= 2).slice(0, 2);
   for (const m of overloaded) {
     out.push({
       id: `mgr-${m.id}`,
@@ -502,13 +503,14 @@ function AnalisesPage() {
         title="Análises"
         description="Leitura objetiva da performance da empresa: padrões, comparativos e evolução nos dados."
         actions={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full flex-col items-stretch gap-2 md:flex-row md:flex-wrap md:items-center lg:w-auto">
             <FilterBar<RangeValue>
               value={range}
               onChange={setRange}
               options={[...RANGE_OPTIONS]}
+              className="w-full md:w-auto"
             />
-            <Button onClick={openAndRun} className="gap-2">
+            <Button onClick={openAndRun} className="w-full gap-2 md:w-auto">
               <Wand2 className="h-4 w-4" />
               Analisar com IA
             </Button>
@@ -665,14 +667,15 @@ function AiAnalysisDialog({
           {isPending && (
             <div className="space-y-3">
               {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="rounded-xl border border-border bg-muted/30 p-4"
-                >
+                <div key={i} className="rounded-xl border border-border bg-muted/30 p-4">
                   <div className="flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
                     <span className="text-sm font-medium text-foreground">
-                      {i === 0 ? "Lendo os dados da empresa…" : i === 1 ? "Cruzando indicadores…" : "Redigindo análise…"}
+                      {i === 0
+                        ? "Lendo os dados da empresa…"
+                        : i === 1
+                          ? "Cruzando indicadores…"
+                          : "Redigindo análise…"}
                     </span>
                   </div>
                   <div className="mt-3 space-y-2">
@@ -763,10 +766,7 @@ function AnalysisTabs({ sections }: { sections: Array<{ key: AiSectionKey; body:
                 )}
               >
                 <span
-                  className={cn(
-                    "flex h-7 w-7 items-center justify-center rounded-lg",
-                    meta.iconBg,
-                  )}
+                  className={cn("flex h-7 w-7 items-center justify-center rounded-lg", meta.iconBg)}
                 >
                   <Icon className="h-4 w-4" />
                 </span>
@@ -800,8 +800,6 @@ function AnalysisTabs({ sections }: { sections: Array<{ key: AiSectionKey; body:
   );
 }
 
-
-
 // =============================================================
 // Bloco 1 — Resumo executivo
 // =============================================================
@@ -820,10 +818,7 @@ function ExecutiveSummaryBlock({ model }: { model: AnaliseModel }) {
     },
     {
       label: "Em atenção ou risco",
-      value:
-        model.scored.length > 0
-          ? `${Math.round(model.attentionRiskShare * 100)}%`
-          : "—",
+      value: model.scored.length > 0 ? `${Math.round(model.attentionRiskShare * 100)}%` : "—",
       hint:
         model.scored.length > 0
           ? `${model.attentionRiskCount} de ${model.scored.length} pessoas`
@@ -844,11 +839,7 @@ function ExecutiveSummaryBlock({ model }: { model: AnaliseModel }) {
           ? `${model.criticalAlertsCount} crítico(s)`
           : "Nenhum crítico no momento",
       tone:
-        model.criticalAlertsCount > 0
-          ? "critical"
-          : model.alertsCount > 0
-            ? "attention"
-            : "good",
+        model.criticalAlertsCount > 0 ? "critical" : model.alertsCount > 0 ? "attention" : "good",
       icon: ListChecks,
     },
     {
@@ -856,11 +847,7 @@ function ExecutiveSummaryBlock({ model }: { model: AnaliseModel }) {
       value: model.goalsAtRiskCount.toString(),
       hint: model.goalsAtRiskCount > 0 ? "Progresso aquém do necessário" : "Nenhuma meta em risco",
       tone:
-        model.goalsAtRiskCount >= 2
-          ? "risk"
-          : model.goalsAtRiskCount === 1
-            ? "attention"
-            : "good",
+        model.goalsAtRiskCount >= 2 ? "risk" : model.goalsAtRiskCount === 1 ? "attention" : "good",
       icon: Target,
     },
   ];
@@ -962,8 +949,16 @@ function TrendBlock({
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={model.evolution} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="var(--color-muted-foreground)" />
-              <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} stroke="var(--color-muted-foreground)" />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 11 }}
+                stroke="var(--color-muted-foreground)"
+              />
+              <YAxis
+                domain={[0, 100]}
+                tick={{ fontSize: 11 }}
+                stroke="var(--color-muted-foreground)"
+              />
               <Tooltip
                 contentStyle={{
                   background: "var(--color-card)",
@@ -1117,10 +1112,7 @@ function AreaRow({ area }: { area: AreaStat }) {
 function AreaRankingsBlock({ model }: { model: AnaliseModel }) {
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-      <SectionCard
-        title="Maiores altas"
-        description="Áreas com maior aumento de score no período."
-      >
+      <SectionCard title="Maiores altas" description="Áreas com maior aumento de score no período.">
         {model.topRisingAreas.length === 0 ? (
           <EmptyState
             icon={TrendingUp}
@@ -1136,10 +1128,7 @@ function AreaRankingsBlock({ model }: { model: AnaliseModel }) {
         )}
       </SectionCard>
 
-      <SectionCard
-        title="Maiores quedas"
-        description="Áreas com maior recuo de score no período."
-      >
+      <SectionCard title="Maiores quedas" description="Áreas com maior recuo de score no período.">
         {model.topFallingAreas.length === 0 ? (
           <EmptyState
             icon={CheckCircle2}
@@ -1158,15 +1147,7 @@ function AreaRankingsBlock({ model }: { model: AnaliseModel }) {
   );
 }
 
-function RankingRow({
-  rank,
-  area,
-  tone,
-}: {
-  rank: number;
-  area: AreaStat;
-  tone: "good" | "risk";
-}) {
+function RankingRow({ rank, area, tone }: { rank: number; area: AreaStat; tone: "good" | "risk" }) {
   return (
     <li className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 hover:bg-muted/20">
       <span
@@ -1433,11 +1414,7 @@ function DeltaTag({
   compact?: boolean;
 }) {
   const tone =
-    value > 0.1
-      ? "text-status-good"
-      : value < -0.1
-        ? "text-status-risk"
-        : "text-muted-foreground";
+    value > 0.1 ? "text-status-good" : value < -0.1 ? "text-status-risk" : "text-muted-foreground";
   const Icon = value > 0.1 ? ArrowUpRight : value < -0.1 ? ArrowDownRight : Minus;
   return (
     <span

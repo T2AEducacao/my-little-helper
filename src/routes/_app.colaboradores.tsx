@@ -214,15 +214,26 @@ function ColaboradoresPage() {
         title="Colaboradores"
         description="Encontre rapidamente quem está em destaque, quem precisa de atenção e quem ainda não foi avaliado."
         actions={
-          <>
-            <Button variant="outline" size="sm" onClick={() => toast("Disponível em breve.")}>
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => toast("Disponível em breve.")}
+            >
               <Upload className="h-4 w-4" /> Importar
             </Button>
-            <Button variant="outline" size="sm" onClick={() => toast("Disponível em breve.")}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => toast("Disponível em breve.")}
+            >
               <Download className="h-4 w-4" /> Exportar
             </Button>
             <Button
               size="sm"
+              className="col-span-2 w-full sm:col-span-1 sm:w-auto"
               onClick={() => {
                 setEditing(null);
                 setOpenForm(true);
@@ -230,7 +241,7 @@ function ColaboradoresPage() {
             >
               <Plus className="h-4 w-4" /> Novo colaborador
             </Button>
-          </>
+          </div>
         }
       />
 

@@ -12,7 +12,7 @@ export function PageHeader({ title, description, actions, className, bordered }:
   return (
     <div
       className={cn(
-        "flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between",
+        "flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-start lg:justify-between",
         bordered && "border-b border-border pb-5",
         className,
       )}
@@ -26,7 +26,7 @@ export function PageHeader({ title, description, actions, className, bordered }:
         )}
       </div>
       {actions && (
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{actions}</div>
+        <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">{actions}</div>
       )}
     </div>
   );
