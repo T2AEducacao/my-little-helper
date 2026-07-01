@@ -70,7 +70,7 @@ function EmployeeGoalsPage() {
               description="Quando seu líder atribuir uma meta, ela aparecerá aqui."
             />
           ) : (
-            <div className="divide-y divide-border rounded-xl border border-border bg-card">
+            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               {pending.map((g) => (
                 <ActiveGoalRow key={g.id} goal={g} />
               ))}
