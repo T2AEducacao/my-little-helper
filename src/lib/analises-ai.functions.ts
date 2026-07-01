@@ -67,7 +67,19 @@ export const gerarAnaliseEmpresa = createServerFn({ method: "POST" })
         : "Sem gargalos relevantes registrados.",
     ].join("\n");
 
-    const system = `Você é um analista de RH sênior. Escreva uma análise objetiva e profissional em português do Brasil sobre a situação da empresa, usando ESTRITAMENTE os números fornecidos — não invente nomes, dados ou colaboradores. Tom: claro, direto, sem jargão de IA, sem promessas, sem emojis. Use markdown simples com três seções curtas: **Visão geral**, **Pontos de atenção**, **Destaques positivos**. Cada seção com 2-4 frases. Total entre 220 e 350 palavras.`;
+    const system = `Você é um analista de RH sênior. Escreva uma análise objetiva e profissional em português do Brasil sobre a situação da empresa, usando ESTRITAMENTE os números fornecidos — não invente nomes, dados ou colaboradores. Tom: claro, direto, sem jargão de IA, sem promessas, sem emojis.
+
+Formato obrigatório:
+**Visão geral**
+- No máximo 2 linhas. Uma frase curta.
+
+**Pontos de atenção**
+- No máximo 2 linhas. Uma frase curta.
+
+**Destaques positivos**
+- No máximo 2 linhas. Uma frase curta.
+
+Não escreva introdução, conclusão, explicações extras, nem mais de um bullet por seção. Total máximo: 90 palavras.`;
 
     const { text } = await generateText({
       model,

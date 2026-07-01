@@ -740,7 +740,18 @@ function splitIntoBullets(body: string): string[] {
     .split(/(?<=[.!?])\s+(?=[A-ZÀ-ÖØ-Þ0-9])/g)
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
-  return parts.length > 0 ? parts : [clean];
+  const source = parts.length > 0 ? parts : [clean];
+  return source.slice(0, 2).map(limitToTwoSentences);
+}
+
+function limitToTwoSentences(text: string): string {
+  const sentences = text
+    .replace(/^[-•]\s*/, "")
+    .split(/(?<=[.!?])\s+(?=[A-ZÀ-ÖØ-Þ0-9])/g)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const compact = (sentences.length > 0 ? sentences.slice(0, 2) : [text]).join(" ").trim();
+  return compact.length > 220 ? `${compact.slice(0, 217).trimEnd()}...` : compact;
 }
 
 function AnalysisTabs({ sections }: { sections: Array<{ key: AiSectionKey; body: string }> }) {
