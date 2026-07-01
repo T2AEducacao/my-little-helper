@@ -769,6 +769,7 @@ function EmployeeCard({
 }) {
   const diff = score !== null && previous !== null ? score - previous : null;
   const avatarUrl = employee.avatar_display_url ?? employee.avatar_url;
+  const displayEmail = employee.email?.trim() || null;
   return (
     <Link
       to="/colaboradores/$id"
@@ -793,10 +794,14 @@ function EmployeeCard({
         )}
       </div>
       <div
-        className="min-h-4 truncate text-xs text-muted-foreground"
-        aria-label={employee.email ? `E-mail: ${employee.email}` : "E-mail ainda não cadastrado"}
+        className="h-5 truncate text-xs leading-5 text-muted-foreground"
+        aria-label={displayEmail ? `E-mail: ${displayEmail}` : "E-mail ainda não cadastrado"}
       >
-        {employee.email ?? <span aria-hidden="true">&nbsp;</span>}
+        {displayEmail ?? (
+          <span aria-hidden="true" className="invisible">
+            email@empresa.com
+          </span>
+        )}
       </div>
       <div className="border-t border-border pt-3">
         <ScoreBar score={score} />
