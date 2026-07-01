@@ -4,10 +4,10 @@ import { cn } from "@/lib/utils";
 
 const ITEMS = [
   { title: "Visão", url: "/", icon: LayoutDashboard },
-  { title: "Ações", url: "/alertas", icon: ListChecks },
-  { title: "Pessoas", url: "/colaboradores", icon: Users },
-  { title: "Metas", url: "/metas", icon: Target },
+  { title: "Colaboradores", url: "/colaboradores", icon: Users },
   { title: "Análises", url: "/analises", icon: ChartNoAxesCombined },
+  { title: "Ações", url: "/alertas", icon: ListChecks },
+  { title: "Metas", url: "/metas", icon: Target },
 ] as const;
 
 export function MobileBottomNav() {
@@ -21,12 +21,12 @@ export function MobileBottomNav() {
             key={item.url}
             to={item.url}
             className={cn(
-              "flex flex-col items-center gap-0.5 py-2.5 text-[11px]",
+              "flex min-w-0 flex-col items-center gap-0.5 py-2.5 text-[10px]",
               active ? "text-primary" : "text-muted-foreground",
             )}
           >
             <item.icon className="h-5 w-5" />
-            <span>{item.title}</span>
+            <span className="max-w-full truncate px-1">{item.title}</span>
           </Link>
         );
       })}

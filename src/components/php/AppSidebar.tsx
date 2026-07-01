@@ -10,20 +10,29 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BarChart3, ChartNoAxesCombined, LayoutDashboard, ListChecks, Settings, Target, Users } from "lucide-react";
+import {
+  BarChart3,
+  ChartNoAxesCombined,
+  LayoutDashboard,
+  ListChecks,
+  Settings,
+  Target,
+  Users,
+} from "lucide-react";
 
 const NAV_ITEMS = [
   { title: "Visão Geral", url: "/", icon: LayoutDashboard },
-  { title: "Ações", url: "/alertas", icon: ListChecks },
-  { title: "Pessoas", url: "/colaboradores", icon: Users },
-  { title: "Metas", url: "/metas", icon: Target },
+  { title: "Colaboradores", url: "/colaboradores", icon: Users },
   { title: "Análises", url: "/analises", icon: ChartNoAxesCombined },
+  { title: "Ações", url: "/alertas", icon: ListChecks },
+  { title: "Metas", url: "/metas", icon: Target },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ] as const;
 
 export function AppSidebar() {
   const currentPath = useRouterState({ select: (s) => s.location.pathname });
-  const isActive = (url: string) => (url === "/" ? currentPath === "/" : currentPath.startsWith(url));
+  const isActive = (url: string) =>
+    url === "/" ? currentPath === "/" : currentPath.startsWith(url);
 
   return (
     <Sidebar collapsible="icon">
