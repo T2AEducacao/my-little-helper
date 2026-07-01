@@ -34,10 +34,10 @@ function EmployeeGoalsPage() {
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <div>
-        <h2 className="text-xl font-semibold tracking-tight">Minhas Metas</h2>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">Minhas Metas</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
           Acompanhe as metas atribuídas pelo seu líder.
         </p>
       </div>
@@ -45,14 +45,14 @@ function EmployeeGoalsPage() {
       <Tabs defaultValue="active">
         <TabsList>
           <TabsTrigger value="active">
-            Minhas Metas
-            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] tabular-nums">
+            Em andamento
+            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
               {pending.length}
             </span>
           </TabsTrigger>
           <TabsTrigger value="done">
             Concluídas
-            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] tabular-nums">
+            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium tabular-nums text-muted-foreground">
               {completed.length}
             </span>
           </TabsTrigger>
@@ -70,7 +70,7 @@ function EmployeeGoalsPage() {
               description="Quando seu líder atribuir uma meta, ela aparecerá aqui."
             />
           ) : (
-            <div className="divide-y divide-border rounded-xl border border-border bg-card">
+            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               {pending.map((g) => (
                 <ActiveGoalRow key={g.id} goal={g} />
               ))}
@@ -86,7 +86,7 @@ function EmployeeGoalsPage() {
               description="Seu histórico de metas finalizadas aparecerá aqui."
             />
           ) : (
-            <div className="divide-y divide-border rounded-xl border border-border bg-card">
+            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-sm">
               {completed.map((g) => (
                 <CompletedGoalRow key={g.id} goal={g} />
               ))}
@@ -101,7 +101,7 @@ function EmployeeGoalsPage() {
 function ActiveGoalRow({ goal }: { goal: GoalRow }) {
   const dueInfo = getDueInfo(goal.deadline);
   return (
-    <article className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <article className="flex flex-col gap-2 px-4 py-3.5 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <h3 className="truncate text-sm font-medium text-foreground">{goal.name}</h3>
         {goal.deadline && (
@@ -126,7 +126,7 @@ function ActiveGoalRow({ goal }: { goal: GoalRow }) {
 
 function CompletedGoalRow({ goal }: { goal: GoalRow }) {
   return (
-    <article className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <article className="flex flex-col gap-2 px-4 py-3.5 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <h3 className="truncate text-sm font-medium text-foreground">{goal.name}</h3>
         <div className="mt-1 text-xs text-muted-foreground">
