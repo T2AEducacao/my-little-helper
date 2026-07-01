@@ -20,7 +20,8 @@ const LANG_KEY = "php.language";
 function useLanguage(): [Lang, (l: Lang) => void] {
   const [lang, setLang] = useState<Lang>("pt-BR");
   useEffect(() => {
-    const stored = (typeof window !== "undefined" && window.localStorage.getItem(LANG_KEY)) as Lang | null;
+    const stored = (typeof window !== "undefined" &&
+      window.localStorage.getItem(LANG_KEY)) as Lang | null;
     if (stored === "pt-BR" || stored === "en") setLang(stored);
   }, []);
   const update = (l: Lang) => {
@@ -84,15 +85,9 @@ function ConfiguracoesPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-      <PageHeader
-        title="Configurações"
-        description="Ajustes essenciais da plataforma."
-      />
+      <PageHeader title="Configurações" description="Ajustes essenciais da plataforma." />
 
-      <SectionCard
-        title="Empresa"
-        description="Nome exibido em relatórios e na navegação."
-      >
+      <SectionCard title="Empresa" description="Nome exibido em relatórios e na navegação.">
         <form
           className="flex flex-col gap-3 sm:max-w-md"
           onSubmit={(e) => {
@@ -124,10 +119,12 @@ function ConfiguracoesPage() {
         description="Define o idioma da interface para todos os usuários do sistema."
       >
         <div className="flex flex-wrap gap-2">
-          {([
-            { value: "pt-BR", label: "Português (BR)" },
-            { value: "en", label: "English" },
-          ] as const).map((opt) => {
+          {(
+            [
+              { value: "pt-BR", label: "Português (BR)" },
+              { value: "en", label: "English" },
+            ] as const
+          ).map((opt) => {
             const active = lang === opt.value;
             return (
               <button
@@ -136,7 +133,9 @@ function ConfiguracoesPage() {
                 onClick={() => {
                   setLang(opt.value);
                   toast.success(
-                    opt.value === "pt-BR" ? "Idioma definido: Português (BR)" : "Language set: English",
+                    opt.value === "pt-BR"
+                      ? "Idioma definido: Português (BR)"
+                      : "Language set: English",
                   );
                 }}
                 className={cn(
@@ -179,7 +178,9 @@ function ConfiguracoesPage() {
                 className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 px-3 py-3"
               >
                 <Avatar className="h-9 w-9">
-                  {m.avatar_url && <AvatarImage src={m.avatar_url} alt={m.name} />}
+                  {(m.avatar_display_url || m.avatar_url) && (
+                    <AvatarImage src={m.avatar_display_url ?? m.avatar_url ?? ""} alt={m.name} />
+                  )}
                   <AvatarFallback className="text-xs">{initials(m.name)}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">

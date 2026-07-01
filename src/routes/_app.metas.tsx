@@ -467,7 +467,12 @@ function GoalRow({
         </div>
         <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
           <Avatar className="h-5 w-5">
-            {employee?.avatar_url && <AvatarImage src={employee.avatar_url} alt={employee.name} />}
+            {(employee?.avatar_display_url || employee?.avatar_url) && (
+              <AvatarImage
+                src={employee.avatar_display_url ?? employee.avatar_url ?? ""}
+                alt={employee.name}
+              />
+            )}
             <AvatarFallback className="bg-primary/10 text-[10px] text-primary">
               {initials(employee?.name ?? "?")}
             </AvatarFallback>

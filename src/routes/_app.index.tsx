@@ -309,7 +309,7 @@ function ManagementCenterPage() {
                   name={item.employee.name}
                   role={item.employee.role}
                   department={departmentName.get(item.employee.department_id ?? "") ?? null}
-                  avatarUrl={item.employee.avatar_url}
+                  avatarUrl={item.employee.avatar_display_url ?? item.employee.avatar_url}
                   score={item.current}
                   delta={delta}
                   to="/colaboradores/$id"
@@ -349,7 +349,7 @@ function ManagementCenterPage() {
                   name={item.employee.name}
                   role={item.employee.role}
                   department={departmentName.get(item.employee.department_id ?? "") ?? null}
-                  avatarUrl={item.employee.avatar_url}
+                  avatarUrl={item.employee.avatar_display_url ?? item.employee.avatar_url}
                   score={item.current}
                   delta={delta}
                   to="/colaboradores/$id"

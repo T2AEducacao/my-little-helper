@@ -396,8 +396,11 @@ function BacklogRow({
         <div className="flex shrink-0 items-center gap-3 sm:gap-4">
           <div className="flex min-w-0 items-center gap-2">
             <Avatar className="h-7 w-7">
-              {employee?.avatar_url ? (
-                <AvatarImage src={employee.avatar_url} alt={ownerName} />
+              {employee?.avatar_display_url || employee?.avatar_url ? (
+                <AvatarImage
+                  src={employee.avatar_display_url ?? employee.avatar_url ?? ""}
+                  alt={ownerName}
+                />
               ) : null}
               <AvatarFallback className="bg-primary/10 text-[11px] font-medium text-primary">
                 {employee ? initials(ownerName) : <Users className="h-3.5 w-3.5" />}

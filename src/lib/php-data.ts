@@ -11,6 +11,7 @@ export type EmployeeRow = {
   role: string | null;
   status: EmployeeStatus;
   avatar_url: string | null;
+  avatar_display_url?: string | null;
   department_id: string | null;
   manager_id: string | null;
   seniority: string | null;
@@ -70,6 +71,8 @@ const EMPLOYEE_COLS =
 const SNAPSHOT_COLS =
   "id,employee_id,snapshot_date,overall_score,delivery_score,quality_score,goals_score,behavior_score,evolution_score,explanation,status";
 
+const AVATAR_SIGNED_TTL = 60 * 60;
+
 export async function getCurrentCompanyId(): Promise<string | null> {
   const { data, error } = await supabase.rpc("get_user_company_id");
   if (error) return null;
@@ -80,12 +83,9 @@ export function useEmployees() {
   return useQuery({
     queryKey: ["employees"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select(EMPLOYEE_COLS)
-        .order("name");
+      const { data, error } = await supabase.from("employees").select(EMPLOYEE_COLS).order("name");
       if (error) throw error;
-      return (data ?? []) as EmployeeRow[];
+      return withSignedEmployeeAvatars((data ?? []) as EmployeeRow[]);
     },
   });
 }
@@ -101,7 +101,7 @@ export function useEmployee(id: string | undefined) {
         .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
-      return (data as EmployeeRow | null) ?? null;
+      return withSignedEmployeeAvatar((data as EmployeeRow | null) ?? null);
     },
   });
 }
@@ -239,9 +239,7 @@ export function useCreateEmployee() {
     mutationFn: async (input: EmployeeInput) => {
       const companyId = await getCurrentCompanyId();
       if (!companyId) {
-        throw new Error(
-          "Sessão não identificada. Faça login para cadastrar colaboradores.",
-        );
+        throw new Error("Sessão não identificada. Faça login para cadastrar colaboradores.");
       }
       const { data, error } = await supabase
         .from("employees")
@@ -250,7 +248,7 @@ export function useCreateEmployee() {
         .single();
       if (error) throw error;
       await logActivity(companyId, "employee.created", data.id, `Cadastro criado: ${data.name}`);
-      return data as EmployeeRow;
+      return withSignedEmployeeAvatar(data as EmployeeRow);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["employees"] });
@@ -271,7 +269,7 @@ export function useUpdateEmployee() {
         .single();
       if (error) throw error;
       if (companyId) await logActivity(companyId, "employee.updated", id, `Dados atualizados`);
-      return data as EmployeeRow;
+      return withSignedEmployeeAvatar(data as EmployeeRow);
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["employees"] });
@@ -291,7 +289,8 @@ export function useDeactivateEmployee() {
         .update({ status: "inactive" as EmployeeStatus })
         .eq("id", id);
       if (error) throw error;
-      if (companyId) await logActivity(companyId, "employee.deactivated", id, "Colaborador desativado");
+      if (companyId)
+        await logActivity(companyId, "employee.deactivated", id, "Colaborador desativado");
     },
     onSuccess: (_d, id) => {
       qc.invalidateQueries({ queryKey: ["employees"] });
@@ -303,7 +302,11 @@ export function useDeactivateEmployee() {
 export function useCreateDepartment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { name: string; description?: string | null; manager_id?: string | null }) => {
+    mutationFn: async (input: {
+      name: string;
+      description?: string | null;
+      manager_id?: string | null;
+    }) => {
       const companyId = await getCurrentCompanyId();
       if (!companyId) throw new Error("Sessão não identificada. Faça login para criar áreas.");
       const { data, error } = await supabase
@@ -354,9 +357,9 @@ export function buildDistribution(employees: EmployeeRow[], latest: LatestByEmpl
     const score = latest.get(e.id)?.current ?? null;
     counts[scoreToStatus(score)]++;
   }
-  return (
-    ["excellent", "good", "attention", "risk", "critical", "neutral"] as ScoreStatus[]
-  ).map((status) => ({ status, count: counts[status] }));
+  return (["excellent", "good", "attention", "risk", "critical", "neutral"] as ScoreStatus[]).map(
+    (status) => ({ status, count: counts[status] }),
+  );
 }
 
 export function buildEvolutionSeries(
@@ -410,4 +413,23 @@ export function initials(name: string): string {
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase() ?? "")
     .join("");
+}
+
+async function withSignedEmployeeAvatars(employees: EmployeeRow[]): Promise<EmployeeRow[]> {
+  return Promise.all(employees.map(withSignedEmployeeAvatar));
+}
+
+async function withSignedEmployeeAvatar(employee: EmployeeRow | null): Promise<EmployeeRow | null> {
+  if (!employee?.avatar_url || isPublicAvatarUrl(employee.avatar_url)) return employee;
+
+  const { data, error } = await supabase.storage
+    .from("avatars")
+    .createSignedUrl(employee.avatar_url, AVATAR_SIGNED_TTL);
+
+  if (error || !data?.signedUrl) return employee;
+  return { ...employee, avatar_display_url: data.signedUrl };
+}
+
+function isPublicAvatarUrl(value: string): boolean {
+  return /^https?:\/\//.test(value) || value.startsWith("data:");
 }

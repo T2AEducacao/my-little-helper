@@ -94,7 +94,11 @@ export const Route = createFileRoute("/_app/colaboradores")({
 
 type ScoreFilter = "all" | "excellent" | "good" | "attention" | "risk" | "critical" | "none";
 
-const SCORE_CHIPS: { value: ScoreFilter; label: string; tone: "excellent" | "good" | "attention" | "risk" | "critical" | "neutral" | "all" }[] = [
+const SCORE_CHIPS: {
+  value: ScoreFilter;
+  label: string;
+  tone: "excellent" | "good" | "attention" | "risk" | "critical" | "neutral" | "all";
+}[] = [
   { value: "all", label: "Todos", tone: "all" },
   { value: "excellent", label: "Alto", tone: "excellent" },
   { value: "good", label: "Bom", tone: "good" },
@@ -204,7 +208,11 @@ function ColaboradoresPage() {
     });
   }
   if (roleFilter !== "all") {
-    activeFilters.push({ key: "role", label: `Cargo: ${roleFilter}`, clear: () => setRoleFilter("all") });
+    activeFilters.push({
+      key: "role",
+      label: `Cargo: ${roleFilter}`,
+      clear: () => setRoleFilter("all"),
+    });
   }
   if (seniorityFilter !== "all") {
     activeFilters.push({
@@ -222,8 +230,7 @@ function ColaboradoresPage() {
   }
 
   const popoverFilterCount = activeFilters.length;
-  const hasAnyFilter =
-    !!search || popoverFilterCount > 0 || scoreFilter !== "all";
+  const hasAnyFilter = !!search || popoverFilterCount > 0 || scoreFilter !== "all";
 
   function clearFilters() {
     setSearch("");
@@ -565,7 +572,8 @@ function ColaboradoresPage() {
           </div>
           <div className="flex items-center justify-between border-t border-border px-4 py-2 text-xs text-muted-foreground">
             <span>
-              Mostrando <span className="font-medium tabular-nums text-foreground">{filtered.length}</span> de{" "}
+              Mostrando{" "}
+              <span className="font-medium tabular-nums text-foreground">{filtered.length}</span> de{" "}
               <span className="tabular-nums">{employees.length}</span> colaboradores
             </span>
             {hasAnyFilter && (
@@ -743,6 +751,7 @@ function EmployeeTableRow({
 }) {
   const diff = score !== null && previous !== null ? score - previous : null;
   const inactive = employee.status !== "active";
+  const avatarUrl = employee.avatar_display_url ?? employee.avatar_url;
 
   return (
     <TableRow className={cn(inactive && "opacity-70")}>
@@ -753,7 +762,7 @@ function EmployeeTableRow({
           className="flex items-center gap-3 hover:underline"
         >
           <Avatar className="h-8 w-8">
-            {employee.avatar_url && <AvatarImage src={employee.avatar_url} alt={employee.name} />}
+            {avatarUrl && <AvatarImage src={avatarUrl} alt={employee.name} />}
             <AvatarFallback className="bg-primary/10 text-[11px] font-medium text-primary">
               {initials(employee.name)}
             </AvatarFallback>
@@ -856,6 +865,7 @@ function EmployeeCard({
   previous: number | null;
 }) {
   const diff = score !== null && previous !== null ? score - previous : null;
+  const avatarUrl = employee.avatar_display_url ?? employee.avatar_url;
   return (
     <Link
       to="/colaboradores/$id"
@@ -864,7 +874,7 @@ function EmployeeCard({
     >
       <div className="flex items-center gap-3">
         <Avatar className="h-10 w-10">
-          {employee.avatar_url && <AvatarImage src={employee.avatar_url} alt={employee.name} />}
+          {avatarUrl && <AvatarImage src={avatarUrl} alt={employee.name} />}
           <AvatarFallback className="bg-primary/10 text-xs font-medium text-primary">
             {initials(employee.name)}
           </AvatarFallback>

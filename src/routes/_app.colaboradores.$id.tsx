@@ -167,6 +167,7 @@ function EmployeeProfilePage() {
   ]);
   const activeTab: EmployeeProfileTab = tab ?? "overview";
   const scoreStatus = scoreToStatus(latest?.overall_score ?? null);
+  const avatarUrl = employee.avatar_display_url ?? employee.avatar_url;
 
   return (
     <div className="space-y-5">
@@ -188,7 +189,7 @@ function EmployeeProfilePage() {
         <div className="grid gap-0 lg:grid-cols-[1fr_360px]">
           <div className="flex items-start gap-4 p-5">
             <Avatar className="h-14 w-14 shrink-0">
-              {employee.avatar_url && <AvatarImage src={employee.avatar_url} alt={employee.name} />}
+              {avatarUrl && <AvatarImage src={avatarUrl} alt={employee.name} />}
               <AvatarFallback className="bg-primary/10 text-base font-medium text-primary">
                 {initials(employee.name)}
               </AvatarFallback>
