@@ -105,7 +105,7 @@ export const provisionEmployeeAccount = createServerFn({ method: "POST" })
     // Link employee
     const { error: linkErr } = await supabaseAdmin
       .from("employees")
-      .update({ profile_id: newUserId })
+      .update({ profile_id: newUserId, email: data.email })
       .eq("id", data.employee_id)
       .eq("company_id", companyId);
     if (linkErr) {

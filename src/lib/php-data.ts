@@ -85,7 +85,7 @@ export function useEmployees() {
     queryFn: async () => {
       const { data, error } = await supabase.from("employees").select(EMPLOYEE_COLS).order("name");
       if (error) throw error;
-      return withSignedEmployeeAvatars((data ?? []) as EmployeeRow[]);
+      return withSignedEmployeeAvatars(await withProfileEmails((data ?? []) as EmployeeRow[]));
     },
   });
 }
@@ -101,7 +101,8 @@ export function useEmployee(id: string | undefined) {
         .eq("id", id!)
         .maybeSingle();
       if (error) throw error;
-      return withSignedEmployeeAvatar((data as EmployeeRow | null) ?? null);
+      const [employee] = await withProfileEmails(data ? [data as EmployeeRow] : []);
+      return withSignedEmployeeAvatar(employee ?? null);
     },
   });
 }
@@ -418,6 +419,33 @@ export function initials(name: string): string {
 async function withSignedEmployeeAvatars(employees: EmployeeRow[]): Promise<EmployeeRow[]> {
   const results = await Promise.all(employees.map((e) => withSignedEmployeeAvatar(e)));
   return results.filter((e): e is EmployeeRow => e !== null);
+}
+
+async function withProfileEmails(employees: EmployeeRow[]): Promise<EmployeeRow[]> {
+  const profileIds = Array.from(
+    new Set(
+      employees
+        .filter((employee) => !employee.email && employee.profile_id)
+        .map((employee) => employee.profile_id as string),
+    ),
+  );
+
+  if (profileIds.length === 0) return employees;
+
+  const { data, error } = await supabase.from("profiles").select("id,email").in("id", profileIds);
+
+  if (error) return employees;
+
+  const emailByProfileId = new Map(
+    (data ?? [])
+      .filter((profile) => typeof profile.email === "string" && profile.email.trim())
+      .map((profile) => [profile.id, profile.email] as const),
+  );
+
+  return employees.map((employee) => {
+    if (employee.email || !employee.profile_id) return employee;
+    return { ...employee, email: emailByProfileId.get(employee.profile_id) ?? employee.email };
+  });
 }
 
 async function withSignedEmployeeAvatar<T extends EmployeeRow | null>(employee: T): Promise<T> {
