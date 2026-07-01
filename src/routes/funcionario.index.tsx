@@ -70,7 +70,7 @@ function EmployeeGoalsPage() {
               description="Quando seu líder atribuir uma meta, ela aparecerá aqui."
             />
           ) : (
-            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-soft)]">
               {pending.map((g) => (
                 <ActiveGoalRow key={g.id} goal={g} />
               ))}
@@ -86,7 +86,7 @@ function EmployeeGoalsPage() {
               description="Seu histórico de metas finalizadas aparecerá aqui."
             />
           ) : (
-            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-soft)]">
               {completed.map((g) => (
                 <CompletedGoalRow key={g.id} goal={g} />
               ))}
