@@ -54,7 +54,7 @@ import { PageHeader } from "@/components/php/PageHeader";
 import { SectionCard } from "@/components/php/SectionCard";
 import { SCORE_RANGES, scoreLabel, scoreToStatus, type ScoreStatus } from "@/components/php/types";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
 import {
   buildEvolutionSeries,
   initials,
@@ -75,7 +75,7 @@ export const Route = createFileRoute("/_app/analises")({
       {
         name: "description",
         content:
-          "Painel executivo de performance: tendências, comparativos entre áreas, carga dos gestores e distribuição da equipe.",
+          "Painel executivo de performance: tendências, comparativos entre áreas e distribuição da equipe.",
       },
     ],
   }),
@@ -522,7 +522,6 @@ function AnalisesPage() {
       <TrendBlock model={model} range={range} onRangeChange={setRange} />
       <AreaComparisonBlock model={model} />
       <AreaRankingsBlock model={model} />
-      <ManagerLoadBlock model={model} />
       <DistributionBlock model={model} />
       <BottlenecksBlock model={model} />
 
@@ -1189,108 +1188,7 @@ function RankingRow({ rank, area, tone }: { rank: number; area: AreaStat; tone: 
 }
 
 // =============================================================
-// Bloco 5 — Carga dos gestores
-// =============================================================
-function ManagerLoadBlock({ model }: { model: AnaliseModel }) {
-  return (
-    <SectionCard
-      title="Carga dos gestores"
-      description="Distribuição dos liderados de cada gestor por faixa de desempenho."
-      action={
-        <Button asChild variant="ghost" size="sm">
-          <Link to="/colaboradores">
-            Ver pessoas
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </Button>
-      }
-    >
-      {model.managers.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title="Sem dados de gestão"
-          description="Vincule liderados a gestores para visualizar esta análise."
-        />
-      ) : (
-        <div className="space-y-2">
-          {model.managers.slice(0, 6).map((m) => (
-            <ManagerRow key={m.id} manager={m} />
-          ))}
-        </div>
-      )}
-    </SectionCard>
-  );
-}
-
-function ManagerRow({ manager }: { manager: ManagerStat }) {
-  const total = manager.good + manager.attention + manager.risk + manager.critical;
-  const pct = (n: number) => (total > 0 ? (n / total) * 100 : 0);
-  return (
-    <Link
-      to="/colaboradores"
-      className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto] items-center gap-4 rounded-lg border border-border bg-card px-3 py-2.5 hover:bg-muted/20"
-    >
-      <div className="flex min-w-0 items-center gap-2">
-        <Avatar className="h-7 w-7">
-          <AvatarFallback className="bg-primary/10 text-[11px] text-primary">
-            {initials(manager.name)}
-          </AvatarFallback>
-        </Avatar>
-        <div className="min-w-0">
-          <div className="truncate text-sm font-medium text-foreground">{manager.name}</div>
-          <div className="text-xs text-muted-foreground">{manager.reportsCount} liderado(s)</div>
-        </div>
-      </div>
-
-      <div>
-        <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
-          {manager.good > 0 && (
-            <span
-              className="h-full bg-status-good"
-              style={{ width: `${pct(manager.good)}%` }}
-              title={`${manager.good} bom/excelente`}
-            />
-          )}
-          {manager.attention > 0 && (
-            <span
-              className="h-full bg-status-attention"
-              style={{ width: `${pct(manager.attention)}%` }}
-              title={`${manager.attention} em atenção`}
-            />
-          )}
-          {manager.risk > 0 && (
-            <span
-              className="h-full bg-status-risk"
-              style={{ width: `${pct(manager.risk)}%` }}
-              title={`${manager.risk} em risco`}
-            />
-          )}
-          {manager.critical > 0 && (
-            <span
-              className="h-full bg-status-critical"
-              style={{ width: `${pct(manager.critical)}%` }}
-              title={`${manager.critical} crítico`}
-            />
-          )}
-        </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] tabular-nums text-muted-foreground">
-          <span>{manager.good} bom</span>
-          <span>·</span>
-          <span>{manager.attention} atenção</span>
-          <span>·</span>
-          <span className={manager.risk + manager.critical > 0 ? "text-status-risk" : ""}>
-            {manager.risk + manager.critical} risco
-          </span>
-        </div>
-      </div>
-
-      <ArrowRight className="h-4 w-4 text-muted-foreground" />
-    </Link>
-  );
-}
-
-// =============================================================
-// Bloco 6 — Distribuição de performance
+// Bloco 5 — Distribuição de performance
 // =============================================================
 function DistributionBlock({ model }: { model: AnaliseModel }) {
   const total = model.scored.length;
