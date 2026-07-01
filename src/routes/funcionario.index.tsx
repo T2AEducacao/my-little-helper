@@ -3,11 +3,13 @@ import { useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarClock, CheckCircle2, Target } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/php/EmptyState";
 import { StatusBadge } from "@/components/php/StatusBadge";
-import { useMyEmployeeGoals, type GoalRow } from "@/lib/goals-data";
+import { useCompleteGoal, useMyEmployeeGoals, type GoalRow } from "@/lib/goals-data";
 
 export const Route = createFileRoute("/funcionario/")({
   component: EmployeeGoalsPage,
@@ -15,6 +17,7 @@ export const Route = createFileRoute("/funcionario/")({
 
 function EmployeeGoalsPage() {
   const { data: goals = [], isLoading } = useMyEmployeeGoals();
+  const completeGoalMut = useCompleteGoal();
   const pending = useMemo(() => goals.filter((g) => g.status === "pending"), [goals]);
   const completed = useMemo(
     () =>
@@ -27,6 +30,17 @@ function EmployeeGoalsPage() {
         ),
     [goals],
   );
+
+  function handleCompleteGoal(id: string) {
+    completeGoalMut.mutate(id, {
+      onSuccess: () => {
+        toast.success("Meta registrada como concluída");
+      },
+      onError: () => {
+        toast.error("Não foi possível concluir a meta. Tente novamente.");
+      },
+    });
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -67,7 +81,12 @@ function EmployeeGoalsPage() {
           ) : (
             <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-soft)]">
               {pending.map((g) => (
-                <ActiveGoalRow key={g.id} goal={g} />
+                <ActiveGoalRow
+                  key={g.id}
+                  goal={g}
+                  isCompleting={completeGoalMut.isPending && completeGoalMut.variables === g.id}
+                  onComplete={handleCompleteGoal}
+                />
               ))}
             </div>
           )}
@@ -93,7 +112,15 @@ function EmployeeGoalsPage() {
   );
 }
 
-function ActiveGoalRow({ goal }: { goal: GoalRow }) {
+function ActiveGoalRow({
+  goal,
+  isCompleting,
+  onComplete,
+}: {
+  goal: GoalRow;
+  isCompleting: boolean;
+  onComplete: (id: string) => void;
+}) {
   const dueInfo = getDueInfo(goal.deadline);
   return (
     <article className="flex flex-col gap-3 px-4 py-3.5 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center">
@@ -126,8 +153,17 @@ function ActiveGoalRow({ goal }: { goal: GoalRow }) {
           </div>
         )}
       </div>
-      <div className="flex justify-start sm:justify-end">
+      <div className="flex flex-wrap justify-start gap-2 sm:justify-end">
         <StatusBadge tone="attention">Em andamento</StatusBadge>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={isCompleting}
+          onClick={() => onComplete(goal.id)}
+        >
+          <CheckCircle2 className="h-4 w-4" />
+          {isCompleting ? "Registrando..." : "Meta concluída"}
+        </Button>
       </div>
     </article>
   );
