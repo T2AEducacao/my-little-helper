@@ -428,7 +428,7 @@ async function withSignedEmployeeAvatar<T extends EmployeeRow | null>(employee: 
     .createSignedUrl(employee.avatar_url, AVATAR_SIGNED_TTL);
 
   if (error || !data?.signedUrl) return employee;
-  return { ...employee, avatar_display_url: data.signedUrl };
+  return { ...employee, avatar_display_url: data.signedUrl } as T;
 }
 
 function isPublicAvatarUrl(value: string): boolean {
