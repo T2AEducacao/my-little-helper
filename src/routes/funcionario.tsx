@@ -4,7 +4,7 @@ import { lovableCloudAuth } from "@/integrations/lovable/auth";
 import { getCurrentAccessContext } from "@/lib/goals-data";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Moon, Sun, Target, UserRound } from "lucide-react";
+import { BarChart3, LogOut, Moon, Sun, Target, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/funcionario")({
