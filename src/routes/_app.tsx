@@ -3,7 +3,7 @@ import { AppSidebar } from "@/components/php/AppSidebar";
 import { MobileBottomNav } from "@/components/php/MobileBottomNav";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { lovableCloudAuth } from "@/integrations/lovable/auth";
-import { getCurrentAccessContext } from "@/lib/goals-data";
+import { getPostLoginRoute } from "@/lib/goals-data";
 import { Outlet, createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
@@ -46,10 +46,14 @@ function AppLayout() {
           redirectToAuth();
           return;
         }
-        const access = await getCurrentAccessContext();
+        const initialRoute = await getPostLoginRoute();
         if (!mounted) return;
-        if (access.isEmployeePortalUser) {
+        if (initialRoute === "/funcionario") {
           navigate({ to: "/funcionario", replace: true });
+          return;
+        }
+        if (pathname === "/" && initialRoute === "/colaboradores") {
+          navigate({ to: "/colaboradores", replace: true });
           return;
         }
         setChecked(true);
@@ -70,10 +74,14 @@ function AppLayout() {
               redirectToAuth();
               return;
             }
-            const access = await getCurrentAccessContext();
+            const initialRoute = await getPostLoginRoute();
             if (!mounted) return;
-            if (access.isEmployeePortalUser) {
+            if (initialRoute === "/funcionario") {
               navigate({ to: "/funcionario", replace: true });
+              return;
+            }
+            if (pathname === "/" && initialRoute === "/colaboradores") {
+              navigate({ to: "/colaboradores", replace: true });
               return;
             }
             setChecked(true);
@@ -92,7 +100,7 @@ function AppLayout() {
       mounted = false;
       unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, pathname]);
 
   if (!checked) {
     return (

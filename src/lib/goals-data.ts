@@ -165,3 +165,22 @@ export async function getCurrentUserRole(): Promise<CurrentUserRole | null> {
   const context = await getCurrentAccessContext();
   return context.role;
 }
+
+export type PostLoginRoute = "/" | "/colaboradores" | "/funcionario";
+
+export async function getPostLoginRoute(): Promise<PostLoginRoute> {
+  const context = await getCurrentAccessContext();
+
+  if (context.isEmployeePortalUser) return "/funcionario";
+
+  if (context.role === "admin" || context.role === "manager") {
+    const { count, error } = await supabase
+      .from("employees")
+      .select("id", { count: "exact", head: true });
+
+    if (error) throw error;
+    if ((count ?? 0) === 0) return "/colaboradores";
+  }
+
+  return "/";
+}
