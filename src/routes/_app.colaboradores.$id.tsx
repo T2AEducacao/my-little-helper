@@ -50,13 +50,13 @@ import { EmployeeAccessButton } from "@/components/php/EmployeeAccessButton";
 import { scoreToStatus, scoreLabel } from "@/components/php/types";
 import {
   usePerformanceWorkspaceData,
+  selectEmployeePerformanceSnapshots,
   type PerformanceGoal,
 } from "@/features/performance/workspace-data";
 import {
   useEmployee,
   useEmployees,
   useDepartments,
-  useEmployeeSnapshots,
   useEmployeeAlerts,
   useEmployeeActivity,
   buildEvolutionSeries,
@@ -109,18 +109,13 @@ function EmployeeProfilePage() {
   const { data: employee, isLoading } = useEmployee(id);
   const { data: employees = [] } = useEmployees();
   const { data: departments = [] } = useDepartments();
-  const { data: dbSnapshots = [] } = useEmployeeSnapshots(id);
   const { data: alerts = [] } = useEmployeeAlerts(id);
   const { data: activity = [] } = useEmployeeActivity(id);
   const performanceData = usePerformanceWorkspaceData(employees);
-  const snapshots = useMemo(() => {
-    const derivedSnapshots = performanceData.snapshots.filter(
-      (snapshot) => snapshot.employee_id === id,
-    );
-    return [...dbSnapshots, ...derivedSnapshots]
-      .sort((a, b) => b.snapshot_date.localeCompare(a.snapshot_date))
-      .filter((snapshot, index, all) => all.findIndex((item) => item.id === snapshot.id) === index);
-  }, [dbSnapshots, id, performanceData.snapshots]);
+  const snapshots = useMemo(
+    () => selectEmployeePerformanceSnapshots(performanceData.snapshots, id),
+    [id, performanceData.snapshots],
+  );
 
   const [editOpen, setEditOpen] = useState(false);
   const [rangeDays, setRangeDays] = useState(90);

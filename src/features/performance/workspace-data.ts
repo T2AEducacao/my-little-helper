@@ -110,6 +110,17 @@ export function usePerformanceWorkspaceData(employees: EmployeeRow[]): Performan
   );
 }
 
+export function selectEmployeePerformanceSnapshots(
+  snapshots: SnapshotRow[],
+  employeeId: string | undefined,
+): SnapshotRow[] {
+  if (!employeeId) return [];
+  return snapshots
+    .filter((snapshot) => snapshot.employee_id === employeeId)
+    .sort(sortSnapshotsDesc)
+    .filter((snapshot, index, all) => all.findIndex((item) => item.id === snapshot.id) === index);
+}
+
 function goalRowToPerformanceGoal(goal: GoalRow): PerformanceGoal {
   const timing = getGoalTiming(goal);
   const score = scoreGoal(goal);
