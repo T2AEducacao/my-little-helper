@@ -3,30 +3,12 @@ import { SectionCard } from "@/components/php/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Languages, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-
-type Lang = "pt-BR" | "en";
-const LANG_KEY = "php.language";
-
-function useLanguage(): [Lang, (l: Lang) => void] {
-  const [lang, setLang] = useState<Lang>("pt-BR");
-  useEffect(() => {
-    const stored = (typeof window !== "undefined" &&
-      window.localStorage.getItem(LANG_KEY)) as Lang | null;
-    if (stored === "pt-BR" || stored === "en") setLang(stored);
-  }, []);
-  const update = (l: Lang) => {
-    setLang(l);
-    if (typeof window !== "undefined") window.localStorage.setItem(LANG_KEY, l);
-  };
-  return [lang, update];
-}
 
 function useCompany() {
   return useQuery({
@@ -48,7 +30,6 @@ function useCompany() {
 function ConfiguracoesPage() {
   const company = useCompany();
   const qc = useQueryClient();
-  const [lang, setLang] = useLanguage();
   const [name, setName] = useState("");
 
   useEffect(() => {
@@ -102,45 +83,6 @@ function ConfiguracoesPage() {
             </Button>
           </div>
         </form>
-      </SectionCard>
-
-      <SectionCard
-        title="Idioma"
-        description="Define o idioma da interface para todos os usuários do sistema."
-      >
-        <div className="flex flex-wrap gap-2">
-          {(
-            [
-              { value: "pt-BR", label: "Português (BR)" },
-              { value: "en", label: "English" },
-            ] as const
-          ).map((opt) => {
-            const active = lang === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => {
-                  setLang(opt.value);
-                  toast.success(
-                    opt.value === "pt-BR"
-                      ? "Idioma definido: Português (BR)"
-                      : "Language set: English",
-                  );
-                }}
-                className={cn(
-                  "inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm transition-colors",
-                  active
-                    ? "border-primary bg-primary/10 text-foreground"
-                    : "border-border bg-background text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Languages className="h-4 w-4" />
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
       </SectionCard>
     </div>
   );
