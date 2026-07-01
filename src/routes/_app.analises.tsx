@@ -36,7 +36,6 @@ import {
   Target,
   TrendingDown,
   TrendingUp,
-  Users,
 } from "lucide-react";
 import {
   CartesianGrid,
