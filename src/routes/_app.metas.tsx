@@ -629,6 +629,9 @@ function DbGoalsSection({
   employeesById: Map<string, EmployeeRow>;
   onComplete: (id: string) => void;
 }) {
+  const pendingGoals = goals.filter((goal) => goal.status === "pending");
+  const completedGoals = goals.filter((goal) => goal.status === "completed");
+
   return (
     <SectionCard
       title="Minhas metas"
@@ -648,85 +651,148 @@ function DbGoalsSection({
             <span>Prazo</span>
             <span className="text-right">Status</span>
           </div>
-          <div className="divide-y divide-border">
-            {goals.map((goal) => {
-              const isDone = goal.status === "completed";
-              const dueInfo = getLocalDueInfo(goal.deadline, goal.status);
-              const employee = employeesById.get(goal.employee_id);
-              const employeeName = employee?.name ?? "Colaborador";
-              const avatarUrl = employee?.avatar_display_url ?? employee?.avatar_url;
-              return (
-                <article
-                  key={goal.id}
-                  className="grid gap-3 px-4 py-3 hover:bg-muted/20 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center lg:grid-cols-[minmax(220px,1fr)_180px_140px_250px] lg:gap-6"
-                >
-                  <div className="min-w-0">
-                    <h4
-                      className={cn(
-                        "truncate text-sm font-medium text-foreground",
-                        isDone && "text-muted-foreground line-through",
-                      )}
-                    >
-                      {goal.name}
-                    </h4>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      Criada em {formatGoalDate(goal.created_at)}
-                    </div>
-                  </div>
-
-                  <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-                    <Avatar className="h-6 w-6 shrink-0">
-                      {avatarUrl && <AvatarImage src={avatarUrl} alt={employeeName} />}
-                      <AvatarFallback className="bg-primary/10 text-[10px] text-primary">
-                        {initials(employeeName)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="min-w-0 truncate">{employeeName}</span>
-                  </div>
-
-                  <div className="min-w-0 text-xs">
-                    <div
-                      className={cn(
-                        "inline-flex items-center gap-1 font-medium tabular-nums",
-                        dueInfo.tone === "risk" && "text-status-risk",
-                        dueInfo.tone === "attention" && "text-status-attention-foreground",
-                        dueInfo.tone === "neutral" && "text-muted-foreground",
-                        dueInfo.tone === "good" && "text-foreground",
-                      )}
-                    >
-                      <CalendarClock className="h-3.5 w-3.5" />
-                      {dueInfo.label}
-                    </div>
-                    {goal.deadline && (
-                      <div className="mt-0.5 text-muted-foreground">
-                        {formatGoalDate(goal.deadline)}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex min-w-0 items-center gap-2 sm:justify-end">
-                    {isDone ? (
-                      <StatusBadge tone="excellent">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Concluída
-                      </StatusBadge>
-                    ) : (
-                      <>
-                        <StatusBadge tone="neutral">Em andamento</StatusBadge>
-                        <Button size="sm" variant="outline" onClick={() => onComplete(goal.id)}>
-                          <CheckCircle2 className="h-4 w-4" />
-                          Meta finalizada
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
+          <div>
+            {pendingGoals.length > 0 && (
+              <DbGoalsGroup
+                title="Em andamento"
+                goals={pendingGoals}
+                employeesById={employeesById}
+                onComplete={onComplete}
+              />
+            )}
+            {completedGoals.length > 0 && (
+              <DbGoalsGroup
+                title="Concluídas"
+                goals={completedGoals}
+                employeesById={employeesById}
+                onComplete={onComplete}
+                muted
+              />
+            )}
           </div>
         </div>
       )}
     </SectionCard>
+  );
+}
+
+function DbGoalsGroup({
+  title,
+  goals,
+  employeesById,
+  onComplete,
+  muted = false,
+}: {
+  title: string;
+  goals: GoalRow[];
+  employeesById: Map<string, EmployeeRow>;
+  onComplete: (id: string) => void;
+  muted?: boolean;
+}) {
+  return (
+    <section className="border-b border-border last:border-b-0">
+      <div
+        className={cn(
+          "flex items-center justify-between border-b border-border/60 px-4 py-2",
+          muted ? "bg-muted/10" : "bg-card",
+        )}
+      >
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {title}
+        </h4>
+        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+          {goals.length}
+        </span>
+      </div>
+      <div className="divide-y divide-border">
+        {goals.map((goal) => (
+          <DbGoalRow
+            key={goal.id}
+            goal={goal}
+            employee={employeesById.get(goal.employee_id)}
+            onComplete={onComplete}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function DbGoalRow({
+  goal,
+  employee,
+  onComplete,
+}: {
+  goal: GoalRow;
+  employee?: EmployeeRow;
+  onComplete: (id: string) => void;
+}) {
+  const isDone = goal.status === "completed";
+  const dueInfo = getLocalDueInfo(goal.deadline, goal.status);
+  const employeeName = employee?.name ?? "Colaborador";
+  const avatarUrl = employee?.avatar_display_url ?? employee?.avatar_url;
+
+  return (
+    <article className="grid gap-3 px-4 py-3 hover:bg-muted/20 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center lg:grid-cols-[minmax(220px,1fr)_180px_140px_250px] lg:gap-6">
+      <div className="min-w-0">
+        <h4
+          className={cn(
+            "truncate text-sm font-medium text-foreground",
+            isDone && "text-muted-foreground line-through",
+          )}
+        >
+          {goal.name}
+        </h4>
+        <div className="mt-1 text-xs text-muted-foreground">
+          Criada em {formatGoalDate(goal.created_at)}
+        </div>
+      </div>
+
+      <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+        <Avatar className="h-6 w-6 shrink-0">
+          {avatarUrl && <AvatarImage src={avatarUrl} alt={employeeName} />}
+          <AvatarFallback className="bg-primary/10 text-[10px] text-primary">
+            {initials(employeeName)}
+          </AvatarFallback>
+        </Avatar>
+        <span className="min-w-0 truncate">{employeeName}</span>
+      </div>
+
+      <div className="min-w-0 text-xs">
+        <div
+          className={cn(
+            "inline-flex items-center gap-1 font-medium tabular-nums",
+            dueInfo.tone === "risk" && "text-status-risk",
+            dueInfo.tone === "attention" && "text-status-attention-foreground",
+            dueInfo.tone === "neutral" && "text-muted-foreground",
+            dueInfo.tone === "good" && "text-foreground",
+          )}
+        >
+          <CalendarClock className="h-3.5 w-3.5" />
+          {dueInfo.label}
+        </div>
+        {goal.deadline && (
+          <div className="mt-0.5 text-muted-foreground">{formatGoalDate(goal.deadline)}</div>
+        )}
+      </div>
+
+      <div className="flex min-w-0 items-center gap-2 sm:justify-end">
+        {isDone ? (
+          <StatusBadge tone="excellent">
+            <CheckCircle2 className="h-3 w-3" />
+            Concluída
+          </StatusBadge>
+        ) : (
+          <>
+            <StatusBadge tone="neutral">Em andamento</StatusBadge>
+            <Button size="sm" variant="outline" onClick={() => onComplete(goal.id)}>
+              <CheckCircle2 className="h-4 w-4" />
+              Meta finalizada
+            </Button>
+          </>
+        )}
+      </div>
+    </article>
   );
 }
 
