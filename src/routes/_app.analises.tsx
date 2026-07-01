@@ -728,6 +728,119 @@ function AiAnalysisDialog({
   );
 }
 
+function splitIntoBullets(body: string): string[] {
+  // Strip markdown bold/italic markers, then split into sentences.
+  const clean = body.replace(/\*\*/g, "").replace(/\r\n/g, "\n").trim();
+  if (!clean) return [];
+  // Split on sentence boundaries (. ! ?) followed by whitespace and capital/number.
+  const parts = clean
+    .split(/(?<=[.!?])\s+(?=[A-ZÀ-ÖØ-Þ0-9])/g)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  return parts.length > 0 ? parts : [clean];
+}
+
+function AnalysisTabs({ sections }: { sections: Array<{ key: AiSectionKey; body: string }> }) {
+  return (
+    <Tabs defaultValue="text" className="w-full">
+      <TabsList className="grid w-full grid-cols-2 mb-4">
+        <TabsTrigger value="text">Por textos</TabsTrigger>
+        <TabsTrigger value="topics">Por tópicos</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="text" className="mt-0 space-y-3">
+        {sections.map(({ key, body }) => {
+          const meta = AI_SECTIONS.find((s) => s.key === key)!;
+          const Icon = meta.icon;
+          return (
+            <section
+              key={key}
+              className={cn(
+                "rounded-xl border p-4 shadow-[var(--shadow-soft)]",
+                meta.accent,
+                meta.bg,
+              )}
+            >
+              <header className="mb-2 flex items-center gap-2">
+                <span
+                  className={cn(
+                    "flex h-7 w-7 items-center justify-center rounded-lg",
+                    meta.iconBg,
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                </span>
+                <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                  {meta.title}
+                </h3>
+              </header>
+              <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 [&_p]:my-1.5 [&_strong]:text-foreground">
+                <ReactMarkdown>{body}</ReactMarkdown>
+              </div>
+            </section>
+          );
+        })}
+      </TabsContent>
+
+      <TabsContent value="topics" className="mt-0 space-y-3">
+        {sections.map(({ key, body }) => {
+          const meta = AI_SECTIONS.find((s) => s.key === key)!;
+          const Icon = meta.icon;
+          const bullets = splitIntoBullets(body);
+          return (
+            <section
+              key={key}
+              className={cn(
+                "rounded-xl border shadow-[var(--shadow-soft)] overflow-hidden",
+                meta.accent,
+              )}
+            >
+              <header
+                className={cn(
+                  "flex items-center gap-2 px-4 py-3 border-b border-current/10",
+                  meta.bg,
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex h-7 w-7 items-center justify-center rounded-lg",
+                    meta.iconBg,
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                </span>
+                <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                  {meta.title}
+                </h3>
+                <span className="ml-auto text-[11px] font-medium text-muted-foreground">
+                  {bullets.length} {bullets.length === 1 ? "ponto" : "pontos"}
+                </span>
+              </header>
+              <ul className="divide-y divide-border/60 bg-card">
+                {bullets.map((b, i) => (
+                  <li key={i} className="flex gap-3 px-4 py-2.5">
+                    <span
+                      className={cn(
+                        "mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold",
+                        meta.iconBg,
+                      )}
+                    >
+                      {i + 1}
+                    </span>
+                    <p className="text-sm leading-relaxed text-foreground/90">{b}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          );
+        })}
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+
+
 // =============================================================
 // Bloco 1 — Resumo executivo
 // =============================================================
