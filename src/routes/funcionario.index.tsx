@@ -70,7 +70,7 @@ function EmployeeGoalsPage() {
               description="Quando seu líder atribuir uma meta, ela aparecerá aqui."
             />
           ) : (
-            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-soft)]">
               {pending.map((g) => (
                 <ActiveGoalRow key={g.id} goal={g} />
               ))}
@@ -86,7 +86,7 @@ function EmployeeGoalsPage() {
               description="Seu histórico de metas finalizadas aparecerá aqui."
             />
           ) : (
-            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+            <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-soft)]">
               {completed.map((g) => (
                 <CompletedGoalRow key={g.id} goal={g} />
               ))}
@@ -101,13 +101,25 @@ function EmployeeGoalsPage() {
 function ActiveGoalRow({ goal }: { goal: GoalRow }) {
   const dueInfo = getDueInfo(goal.deadline);
   return (
-    <article className="flex flex-col gap-2 px-4 py-3.5 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0">
+    <article className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/40">
+      <div
+        className={cn(
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border",
+          dueInfo.tone === "risk"
+            ? "border-status-risk/30 bg-status-risk/10 text-status-risk"
+            : dueInfo.tone === "attention"
+              ? "border-status-attention/30 bg-status-attention/15 text-status-attention-foreground"
+              : "border-border bg-muted text-muted-foreground",
+        )}
+      >
+        <Target className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
         <h3 className="truncate text-sm font-medium text-foreground">{goal.name}</h3>
         {goal.deadline && (
           <div
             className={cn(
-              "mt-1 inline-flex items-center gap-1 text-xs font-medium tabular-nums",
+              "mt-0.5 inline-flex items-center gap-1 text-xs font-medium tabular-nums",
               dueInfo.tone === "risk" && "text-status-risk",
               dueInfo.tone === "attention" && "text-status-attention-foreground",
               dueInfo.tone === "neutral" && "text-muted-foreground",
@@ -126,19 +138,19 @@ function ActiveGoalRow({ goal }: { goal: GoalRow }) {
 
 function CompletedGoalRow({ goal }: { goal: GoalRow }) {
   return (
-    <article className="flex flex-col gap-2 px-4 py-3.5 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0">
+    <article className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/40">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-status-excellent/30 bg-status-excellent/10 text-status-excellent">
+        <CheckCircle2 className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
         <h3 className="truncate text-sm font-medium text-foreground">{goal.name}</h3>
-        <div className="mt-1 text-xs text-muted-foreground">
+        <div className="mt-0.5 text-xs text-muted-foreground">
           {goal.completed_at
             ? `Concluída em ${formatDate(goal.completed_at)}`
             : "Concluída"}
         </div>
       </div>
-      <StatusBadge tone="excellent">
-        <CheckCircle2 className="h-3 w-3" />
-        Concluída
-      </StatusBadge>
+      <StatusBadge tone="excellent">Concluída</StatusBadge>
     </article>
   );
 }

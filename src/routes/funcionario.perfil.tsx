@@ -141,7 +141,7 @@ function EmployeeProfilePage() {
         <p className="mt-1 text-sm text-muted-foreground">Atualize sua foto de perfil.</p>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando…

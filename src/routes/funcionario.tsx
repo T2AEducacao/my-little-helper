@@ -4,7 +4,7 @@ import { lovableCloudAuth } from "@/integrations/lovable/auth";
 import { getCurrentAccessContext } from "@/lib/goals-data";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Moon, Sun, Target, UserRound } from "lucide-react";
+import { BarChart3, LogOut, Moon, Sun, Target, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/funcionario")({
@@ -72,12 +72,17 @@ function EmployeeLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      <header className="sticky top-0 z-20 border-b border-border/70 bg-card/80 shadow-sm backdrop-blur">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
+      <header className="sticky top-0 z-20 border-b border-border/70 bg-card/85 shadow-[var(--shadow-soft)] backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-4">
-          <div className="min-w-0">
-            <h1 className="text-lg font-semibold tracking-tight text-foreground">Performativo</h1>
-            <p className="text-xs text-muted-foreground">Portal do colaborador</p>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+              <BarChart3 className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 leading-tight">
+              <h1 className="text-sm font-semibold tracking-tight text-foreground">Performativo</h1>
+              <p className="text-[11px] text-muted-foreground">Portal do colaborador</p>
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <Button
@@ -90,7 +95,7 @@ function EmployeeLayout() {
             >
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-foreground">
               <LogOut className="h-4 w-4" />
               Sair
             </Button>

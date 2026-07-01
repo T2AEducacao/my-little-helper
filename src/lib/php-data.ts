@@ -416,10 +416,11 @@ export function initials(name: string): string {
 }
 
 async function withSignedEmployeeAvatars(employees: EmployeeRow[]): Promise<EmployeeRow[]> {
-  return Promise.all(employees.map(withSignedEmployeeAvatar));
+  const results = await Promise.all(employees.map((e) => withSignedEmployeeAvatar(e)));
+  return results.filter((e): e is EmployeeRow => e !== null);
 }
 
-async function withSignedEmployeeAvatar(employee: EmployeeRow | null): Promise<EmployeeRow | null> {
+async function withSignedEmployeeAvatar<T extends EmployeeRow | null>(employee: T): Promise<T> {
   if (!employee?.avatar_url || isPublicAvatarUrl(employee.avatar_url)) return employee;
 
   const { data, error } = await supabase.storage
@@ -427,7 +428,7 @@ async function withSignedEmployeeAvatar(employee: EmployeeRow | null): Promise<E
     .createSignedUrl(employee.avatar_url, AVATAR_SIGNED_TTL);
 
   if (error || !data?.signedUrl) return employee;
-  return { ...employee, avatar_display_url: data.signedUrl };
+  return { ...employee, avatar_display_url: data.signedUrl } as T;
 }
 
 function isPublicAvatarUrl(value: string): boolean {
