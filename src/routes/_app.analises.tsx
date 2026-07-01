@@ -523,50 +523,239 @@ function AnalisesPage() {
       <DistributionBlock model={model} />
       <BottlenecksBlock model={model} />
 
-      <Dialog open={aiOpen} onOpenChange={setAiOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Wand2 className="h-4 w-4 text-primary" />
-              Análise da empresa
-            </DialogTitle>
-            <DialogDescription>
-              Resumo gerado por IA com base nos {model.rangeLabel}.
-            </DialogDescription>
-          </DialogHeader>
+      <AiAnalysisDialog
+        open={aiOpen}
+        onOpenChange={setAiOpen}
+        rangeLabel={model.rangeLabel}
+        isPending={aiMutation.isPending}
+        isError={aiMutation.isError}
+        analysis={aiMutation.data?.analysis ?? null}
+        onRegenerate={() => aiMutation.mutate()}
+      />
+    </div>
+  );
+}
 
-          <div className="max-h-[60vh] overflow-y-auto">
-            {aiMutation.isPending && (
-              <div className="flex items-center gap-3 py-8 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Gerando análise…
-              </div>
-            )}
-            {aiMutation.isError && (
-              <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-                Não foi possível gerar a análise agora. Tente novamente em instantes.
-              </div>
-            )}
-            {aiMutation.isSuccess && aiMutation.data && (
-              <article className="prose prose-sm dark:prose-invert max-w-none">
-                <ReactMarkdown>{aiMutation.data.analysis}</ReactMarkdown>
-              </article>
-            )}
+// =============================================================
+// AI Analysis Dialog
+// =============================================================
+
+type AiSectionKey = "overview" | "attention" | "highlights";
+
+const AI_SECTIONS: Array<{
+  key: AiSectionKey;
+  title: string;
+  aliases: string[];
+  icon: typeof Eye;
+  accent: string; // border + icon color
+  bg: string; // soft bg
+  iconBg: string;
+}> = [
+  {
+    key: "overview",
+    title: "Visão geral",
+    aliases: ["visão geral", "visao geral"],
+    icon: Eye,
+    accent: "text-status-info border-status-info/30",
+    bg: "bg-status-info-soft/50",
+    iconBg: "bg-status-info-soft text-status-info",
+  },
+  {
+    key: "attention",
+    title: "Pontos de atenção",
+    aliases: ["pontos de atenção", "pontos de atencao"],
+    icon: ShieldAlert,
+    accent: "text-status-attention-foreground border-status-attention/40",
+    bg: "bg-status-attention-soft/50",
+    iconBg: "bg-status-attention-soft text-status-attention-foreground",
+  },
+  {
+    key: "highlights",
+    title: "Destaques positivos",
+    aliases: ["destaques positivos", "destaques"],
+    icon: TrendingUpIcon,
+    accent: "text-status-excellent border-status-excellent/30",
+    bg: "bg-status-excellent-soft/50",
+    iconBg: "bg-status-excellent-soft text-status-excellent",
+  },
+];
+
+function parseAnalysisSections(text: string): Array<{ key: AiSectionKey; body: string }> {
+  if (!text) return [];
+  // Normalize headings: **Title** or ## Title on their own line/inline.
+  const normalized = text.replace(/\r\n/g, "\n");
+  const result: Array<{ key: AiSectionKey; body: string }> = [];
+
+  // Build regex that matches any alias, as bold **...** or heading, capturing up to next heading.
+  const allAliases = AI_SECTIONS.flatMap((s) => s.aliases);
+  const aliasPattern = allAliases.map((a) => a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  const re = new RegExp(
+    `(?:^|\\n)\\s*(?:\\*\\*|##\\s*|#\\s*)(${aliasPattern})(?:\\*\\*)?\\s*[:\\n]?`,
+    "gi",
+  );
+
+  const matches: Array<{ index: number; end: number; alias: string }> = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(normalized)) !== null) {
+    matches.push({ index: m.index, end: m.index + m[0].length, alias: m[1].toLowerCase() });
+  }
+
+  if (matches.length === 0) return [];
+
+  for (let i = 0; i < matches.length; i++) {
+    const cur = matches[i];
+    const next = matches[i + 1];
+    const body = normalized.slice(cur.end, next ? next.index : normalized.length).trim();
+    const section = AI_SECTIONS.find((s) =>
+      s.aliases.some((a) => a === cur.alias.replace(/\*/g, "").trim()),
+    );
+    if (section) result.push({ key: section.key, body });
+  }
+  return result;
+}
+
+interface AiAnalysisDialogProps {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  rangeLabel: string;
+  isPending: boolean;
+  isError: boolean;
+  analysis: string | null;
+  onRegenerate: () => void;
+}
+
+function AiAnalysisDialog({
+  open,
+  onOpenChange,
+  rangeLabel,
+  isPending,
+  isError,
+  analysis,
+  onRegenerate,
+}: AiAnalysisDialogProps) {
+  const sections = analysis ? parseAnalysisSections(analysis) : [];
+  const hasStructured = sections.length > 0;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl overflow-hidden p-0 gap-0">
+        {/* Header with gradient */}
+        <div className="relative overflow-hidden border-b border-border bg-gradient-to-br from-primary/10 via-status-info-soft/40 to-transparent px-6 pt-6 pb-5">
+          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+          <div className="relative flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[var(--shadow-soft)]">
+              <Sparkle className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <DialogHeader className="space-y-1 text-left">
+                <DialogTitle className="text-lg font-semibold tracking-tight">
+                  Análise da empresa
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  Resumo gerado por IA · {rangeLabel}
+                </DialogDescription>
+              </DialogHeader>
+            </div>
           </div>
+        </div>
 
-          <DialogFooter>
+        {/* Body */}
+        <div className="max-h-[62vh] overflow-y-auto px-6 py-5">
+          {isPending && (
+            <div className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="rounded-xl border border-border bg-muted/30 p-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-sm font-medium text-foreground">
+                      {i === 0 ? "Lendo os dados da empresa…" : i === 1 ? "Cruzando indicadores…" : "Redigindo análise…"}
+                    </span>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    <div className="h-2 w-11/12 animate-pulse rounded bg-muted" />
+                    <div className="h-2 w-9/12 animate-pulse rounded bg-muted" />
+                    <div className="h-2 w-10/12 animate-pulse rounded bg-muted" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {isError && !isPending && (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+              Não foi possível gerar a análise agora. Tente novamente em instantes.
+            </div>
+          )}
+
+          {!isPending && !isError && analysis && hasStructured && (
+            <div className="space-y-3">
+              {sections.map(({ key, body }) => {
+                const meta = AI_SECTIONS.find((s) => s.key === key)!;
+                const Icon = meta.icon;
+                return (
+                  <section
+                    key={key}
+                    className={cn(
+                      "rounded-xl border p-4 shadow-[var(--shadow-soft)]",
+                      meta.accent,
+                      meta.bg,
+                    )}
+                  >
+                    <header className="mb-2 flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "flex h-7 w-7 items-center justify-center rounded-lg",
+                          meta.iconBg,
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <h3 className="text-sm font-semibold tracking-tight text-foreground">
+                        {meta.title}
+                      </h3>
+                    </header>
+                    <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90 [&_p]:my-1.5 [&_strong]:text-foreground">
+                      <ReactMarkdown>{body}</ReactMarkdown>
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          )}
+
+          {!isPending && !isError && analysis && !hasStructured && (
+            <article className="prose prose-sm dark:prose-invert max-w-none">
+              <ReactMarkdown>{analysis}</ReactMarkdown>
+            </article>
+          )}
+        </div>
+
+        {/* Footer */}
+        <DialogFooter className="border-t border-border bg-muted/30 px-6 py-3 sm:justify-between">
+          <p className="hidden text-xs text-muted-foreground sm:block">
+            Baseado em dados agregados · não substitui avaliação humana.
+          </p>
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              onClick={() => aiMutation.mutate()}
-              disabled={aiMutation.isPending}
+              size="sm"
+              onClick={onRegenerate}
+              disabled={isPending}
+              className="gap-1.5"
             >
+              <RefreshCcw className={cn("h-3.5 w-3.5", isPending && "animate-spin")} />
               Gerar novamente
             </Button>
-            <Button onClick={() => setAiOpen(false)}>Fechar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+            <Button size="sm" onClick={() => onOpenChange(false)}>
+              Fechar
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
