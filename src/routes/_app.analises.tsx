@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { gerarAnaliseEmpresa } from "@/lib/analises-ai.functions";
 import { Loader2, Wand2, Sparkle, ShieldAlert, TrendingUp as TrendingUpIcon, Eye, RefreshCcw } from "lucide-react";
 import {
