@@ -68,7 +68,6 @@ import { cn } from "@/lib/utils";
 import {
   useEmployees,
   useDepartments,
-  useSnapshots,
   useDeactivateEmployee,
   latestSnapshotsByEmployee,
   initials,
@@ -77,6 +76,7 @@ import {
   type EmployeeRow,
   type EmployeeStatus,
 } from "@/lib/php-data";
+import { usePerformanceWorkspaceData } from "@/features/performance/workspace-data";
 
 export const Route = createFileRoute("/_app/colaboradores")({
   head: () => ({
@@ -111,7 +111,7 @@ const SCORE_CHIPS: {
 function ColaboradoresPage() {
   const { data: employees = [], isLoading } = useEmployees();
   const { data: departments = [] } = useDepartments();
-  const { data: snapshots = [] } = useSnapshots();
+  const performanceData = usePerformanceWorkspaceData(employees);
   const deactivate = useDeactivateEmployee();
 
   const [openForm, setOpenForm] = useState(false);
@@ -120,17 +120,17 @@ function ColaboradoresPage() {
 
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState<string>("all");
-  const [managerFilter, setManagerFilter] = useState<string>("all");
   const [seniorityFilter, setSeniorityFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [scoreFilter, setScoreFilter] = useState<ScoreFilter>("all");
-  const [roleFilter, setRoleFilter] = useState<string>("all");
   const [view, setView] = useState<"table" | "cards">("table");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const latest = useMemo(() => latestSnapshotsByEmployee(snapshots), [snapshots]);
+  const latest = useMemo(
+    () => latestSnapshotsByEmployee(performanceData.snapshots),
+    [performanceData.snapshots],
+  );
   const deptById = useMemo(() => new Map(departments.map((d) => [d.id, d.name])), [departments]);
-  const empById = useMemo(() => new Map(employees.map((e) => [e.id, e.name])), [employees]);
 
   const buckets = useMemo(() => {
     const active = employees.filter((e) => e.status === "active");
@@ -144,31 +144,16 @@ function ColaboradoresPage() {
     return { active: active.length, total: employees.length, ...counts };
   }, [employees, latest]);
 
-  const roleOptions = useMemo(() => {
-    const set = new Set<string>();
-    employees.forEach((e) => e.role && set.add(e.role));
-    return Array.from(set).sort();
-  }, [employees]);
-  const managerOptions = useMemo(() => {
-    const ids = new Set<string>();
-    employees.forEach((e) => e.manager_id && ids.add(e.manager_id));
-    return Array.from(ids)
-      .map((id) => ({ id, name: empById.get(id) ?? "—" }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [employees, empById]);
-
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return employees.filter((e) => {
       if (q) {
-        const hay = [e.name, e.email ?? "", e.role ?? "", deptById.get(e.department_id ?? "") ?? ""]
+        const hay = [e.name, e.email ?? "", deptById.get(e.department_id ?? "") ?? ""]
           .join(" ")
           .toLowerCase();
         if (!hay.includes(q)) return false;
       }
       if (deptFilter !== "all" && e.department_id !== deptFilter) return false;
-      if (managerFilter !== "all" && e.manager_id !== managerFilter) return false;
-      if (roleFilter !== "all" && e.role !== roleFilter) return false;
       if (seniorityFilter !== "all" && e.seniority !== seniorityFilter) return false;
       if (statusFilter !== "all" && e.status !== statusFilter) return false;
       const score = latest.get(e.id)?.current ?? null;
@@ -179,18 +164,7 @@ function ColaboradoresPage() {
       }
       return true;
     });
-  }, [
-    employees,
-    search,
-    deptFilter,
-    managerFilter,
-    roleFilter,
-    seniorityFilter,
-    statusFilter,
-    scoreFilter,
-    latest,
-    deptById,
-  ]);
+  }, [employees, search, deptFilter, seniorityFilter, statusFilter, scoreFilter, latest, deptById]);
 
   const activeFilters: { key: string; label: string; clear: () => void }[] = [];
   if (deptFilter !== "all") {
@@ -198,20 +172,6 @@ function ColaboradoresPage() {
       key: "dept",
       label: `Área: ${deptById.get(deptFilter) ?? "—"}`,
       clear: () => setDeptFilter("all"),
-    });
-  }
-  if (managerFilter !== "all") {
-    activeFilters.push({
-      key: "manager",
-      label: `Gestor: ${empById.get(managerFilter) ?? "—"}`,
-      clear: () => setManagerFilter("all"),
-    });
-  }
-  if (roleFilter !== "all") {
-    activeFilters.push({
-      key: "role",
-      label: `Cargo: ${roleFilter}`,
-      clear: () => setRoleFilter("all"),
     });
   }
   if (seniorityFilter !== "all") {
@@ -235,8 +195,6 @@ function ColaboradoresPage() {
   function clearFilters() {
     setSearch("");
     setDeptFilter("all");
-    setManagerFilter("all");
-    setRoleFilter("all");
     setSeniorityFilter("all");
     setStatusFilter("all");
     setScoreFilter("all");
@@ -297,7 +255,7 @@ function ColaboradoresPage() {
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nome, e-mail, cargo ou área..."
+              placeholder="Buscar por nome, e-mail ou área..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9 pl-9"
@@ -326,28 +284,6 @@ function ColaboradoresPage() {
                       options={[
                         { value: "all", label: "Todas as áreas" },
                         ...departments.map((d) => ({ value: d.id, label: d.name })),
-                      ]}
-                    />
-                  </FilterField>
-                  <FilterField label="Gestor">
-                    <FilterSelect
-                      value={managerFilter}
-                      onChange={setManagerFilter}
-                      placeholder="Todos os gestores"
-                      options={[
-                        { value: "all", label: "Todos os gestores" },
-                        ...managerOptions.map((m) => ({ value: m.id, label: m.name })),
-                      ]}
-                    />
-                  </FilterField>
-                  <FilterField label="Cargo">
-                    <FilterSelect
-                      value={roleFilter}
-                      onChange={setRoleFilter}
-                      placeholder="Todos os cargos"
-                      options={[
-                        { value: "all", label: "Todos os cargos" },
-                        ...roleOptions.map((r) => ({ value: r, label: r })),
                       ]}
                     />
                   </FilterField>
@@ -534,13 +470,7 @@ function ColaboradoresPage() {
                     Pessoa
                   </TableHead>
                   <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Cargo
-                  </TableHead>
-                  <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                     Área
-                  </TableHead>
-                  <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    Gestor
                   </TableHead>
                   <TableHead className="h-10 w-[220px] text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                     Desempenho
@@ -557,7 +487,6 @@ function ColaboradoresPage() {
                     key={e.id}
                     employee={e}
                     deptName={deptById.get(e.department_id ?? "") ?? "—"}
-                    managerName={empById.get(e.manager_id ?? "") ?? "—"}
                     score={latest.get(e.id)?.current ?? null}
                     previous={latest.get(e.id)?.previous ?? null}
                     onEdit={() => {
@@ -735,7 +664,6 @@ function ScoreBar({ score }: { score: number | null }) {
 function EmployeeTableRow({
   employee,
   deptName,
-  managerName,
   score,
   previous,
   onEdit,
@@ -743,7 +671,6 @@ function EmployeeTableRow({
 }: {
   employee: EmployeeRow;
   deptName: string;
-  managerName: string;
   score: number | null;
   previous: number | null;
   onEdit: () => void;
@@ -778,12 +705,7 @@ function EmployeeTableRow({
           </div>
         </Link>
       </TableCell>
-      <TableCell className="py-2.5 text-sm">
-        <div className="text-sm text-foreground">{employee.role ?? "—"}</div>
-        <div className="text-xs text-muted-foreground">{employee.seniority ?? "—"}</div>
-      </TableCell>
       <TableCell className="py-2.5 text-sm text-foreground">{deptName}</TableCell>
-      <TableCell className="py-2.5 text-sm text-muted-foreground">{managerName}</TableCell>
       <TableCell className="py-2.5">
         <ScoreBar score={score} />
       </TableCell>
@@ -883,13 +805,15 @@ function EmployeeCard({
           <div className="truncate text-sm font-medium text-foreground group-hover:underline">
             {employee.name}
           </div>
-          <div className="truncate text-xs text-muted-foreground">{employee.role ?? "—"}</div>
+          <div className="truncate text-xs text-muted-foreground">{deptName}</div>
         </div>
         {employee.status !== "active" && (
           <StatusBadge tone="neutral">{STATUS_LABEL[employee.status]}</StatusBadge>
         )}
       </div>
-      <div className="text-xs text-muted-foreground">{deptName}</div>
+      {employee.email && (
+        <div className="truncate text-xs text-muted-foreground">{employee.email}</div>
+      )}
       <div className="border-t border-border pt-3">
         <ScoreBar score={score} />
         {diff !== null && diff !== 0 && (
